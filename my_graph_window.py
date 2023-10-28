@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QWidget
 from process.deal_package import DealPackage
 
 from config import system_memory as SystemMemory
-from config import system_constant as SystemConstants
+from config.system_constant import SystemConstants
 
 
 # 界面类
@@ -111,9 +111,9 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.comboBox.setCurrentIndex(device_index)
 
         # 初始化ip地址和端口信息
-        SystemMemory.set_value("ip", self.lineEdit_IP.text())
-        SystemMemory.set_value("port", int(self.lineEdit_port.text()))
-        SystemMemory.set_value("span", int(self.lineEdit_span_millisecond.text()))
+        SystemMemory.set_value(SystemConstants.IP_NAME, self.lineEdit_IP.text())
+        SystemMemory.set_value(SystemConstants.PORT_NAME, int(self.lineEdit_port.text()))
+        SystemMemory.set_value(SystemConstants.SPAN_NAME, int(self.lineEdit_span_millisecond.text()))
 
         ports_list = list(serial.tools.list_ports.comports())
         # ports_list_value = list()
@@ -229,9 +229,9 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # 保存发送服务信息
     def save_server_information(self):
-        SystemMemory.set_value("ip", self.lineEdit_IP.text())
-        SystemMemory.set_value("port", int(self.lineEdit_port.text()))
-        SystemMemory.set_value("span", int(self.lineEdit_span_millisecond.text()))
+        SystemMemory.set_value(SystemConstants.IP_NAME, self.lineEdit_IP.text())
+        SystemMemory.set_value(SystemConstants.PORT_NAME, int(self.lineEdit_port.text()))
+        SystemMemory.set_value(SystemConstants.SPAN_NAME, int(self.lineEdit_span_millisecond.text()))
         logger.info("保存服务端信息成功！")
 
     def closeEvent(self, event):

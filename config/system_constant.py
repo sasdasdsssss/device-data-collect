@@ -8,6 +8,9 @@
 # 中。如果字典中包含此变量，将抛出异常，否则，给新创建的常量赋值。
 # 最后两行代码的作用是把const类注册到sys.modules这个全局字典中。
 class SystemConstants:
+    def __init__(self):
+        pass
+
     class ConstError(TypeError):
         pass
 
@@ -21,6 +24,9 @@ SystemConstants.PASS_RESULT = "Pass"
 SystemConstants.FAIL_RESULT = "Fail"
 SystemConstants.BREATHE_DATA_VALUE = "breath_value"
 SystemConstants.HEART_DATA_VALUE = "heart_value"
+SystemConstants.RADAR_BREATH_DATA_TYPE = "radar_breath_data"
+SystemConstants.RADAR_HEART_DATA_TYPE = "radar_heart_data"
 SystemConstants.IP_NAME = "ip"
 SystemConstants.PORT_NAME = "port"
 SystemConstants.SPAN_NAME = "span"
+SystemConstants.ENCODE_TYPE = "'utf-8'"

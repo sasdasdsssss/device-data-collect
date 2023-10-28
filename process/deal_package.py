@@ -4,7 +4,7 @@ import numpy as np
 import struct
 import time
 from config import system_memory as SystemMemory
-from config import system_constant as SystemConstants
+from config.system_constant import SystemConstants
 
 
 # 处理数据类
@@ -65,8 +65,8 @@ class DealPackage:
                         breath_str = str(T1_Breath_val)
                         heart_str = str(T1_Heart_val)
 
-                        SystemMemory.set_value("breathe_value", breath_str)
-                        SystemMemory.set_value("heart_value", heart_str)
+                        SystemMemory.set_value(SystemConstants.BREATHE_DATA_VALUE , breath_str)
+                        SystemMemory.set_value(SystemConstants.HEART_DATA_VALUE, heart_str)
 
                         self.myWin.label_T1_2.setText("呼吸频率：" + breath_str + " 次/分钟")
                         self.myWin.label_T2_2.setText("心率：" + heart_str + " 次/分钟")
