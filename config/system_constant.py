@@ -7,7 +7,7 @@
 # 自类TypeError. 通过调用类自带的字典__dict__, 判断定义的常量是否包含在字典
 # 中。如果字典中包含此变量，将抛出异常，否则，给新创建的常量赋值。
 # 最后两行代码的作用是把const类注册到sys.modules这个全局字典中。
-class ProjectConstants:
+class SystemConstants:
     class ConstError(TypeError):
         pass
 
@@ -17,6 +17,10 @@ class ProjectConstants:
         self.__dict__[name] = value
 
 
-ProjectConstants.PASS_RESULT = "Pass"
-ProjectConstants.FAIL_RESULT = "Fail"
-
+SystemConstants.PASS_RESULT = "Pass"
+SystemConstants.FAIL_RESULT = "Fail"
+SystemConstants.BREATHE_DATA_VALUE = "breath_value"
+SystemConstants.HEART_DATA_VALUE = "heart_value"
+SystemConstants.IP_NAME = "ip"
+SystemConstants.PORT_NAME = "port"
+SystemConstants.SPAN_NAME = "span"

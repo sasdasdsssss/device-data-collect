@@ -18,27 +18,35 @@ from loguru import logger
 import os  # 用于处理文件
 
 from PySide6.QtGui import QVector3D, QLinearGradient
-from PySide6.QtDataVisualization import *  # QAbstract3DSeries,Q3DScatter, QScatter3DSeries, QScatterDataItem,
-# Q3DCamera,QScatterDataProxy
+from PySide6.QtDataVisualization import QAbstract3DSeries, Q3DScatter, QScatter3DSeries, \
+    QScatterDataItem, Q3DCamera, QScatterDataProxy, Q3DTheme
 from PySide6.QtWidgets import QWidget
 
 from process.deal_package import DealPackage
 
+from config import system_memory as SystemMemory
+from config import system_constant as SystemConstants
 
+
+# 界面类
 class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
-
         super(MyGraphWindow, self).__init__()
         self.setupUi(self)  # 初始化窗口
-        self.p1, self.p11, self.p2, self.p22, self.curve1, self.curve11, self.curve2, self.curve22, self.pos, self.series = self.set_graph_ui()  # 设置绘图窗口
-        self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, self.ACTION_TYPE_DISPLAY = self.init_data()
+        self.p1, self.p11, self.p2, self.p22, self.curve1, self.curve11, \
+            self.curve2, self.curve22, self.pos, self.series = self.set_graph_ui()  # 设置绘图窗口
+        self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
+            self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
+            self.ACTION_TYPE_DISPLAY = self.init_data()
         self.btn1.clicked.connect(self.data_open)  # 打开网卡
         self.btn2.clicked.connect(self.serial_open)  # 打开串口
         self.btn3.clicked.connect(self.serial_send)  # 打开串口
         self.btn4.clicked.connect(self.serial_read)  # 打开串口
+        self.btn_save_server.clicked.connect(self.save_server_information)  # 打开串口
 
-    def init_data(self):
+    @staticmethod
+    def init_data():
         T1_phaseBreath = np.zeros(300)
         T1_phaseHeart = np.zeros(300)
         T1_amp = np.zeros(300)
@@ -91,9 +99,21 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         list_device_value = list(list_device.values())
         list_device_key = list(list_device.keys())
 
+        # 初始化网卡信息
+        device_index = 0
+        count = 0
         for values in list_device_value:
+            logger.info(values)
+            if "Realtek USB" in values:
+                device_index = count
             self.comboBox.addItem(values)
-        self.comboBox.setCurrentIndex(0)
+            count = count + 1
+        self.comboBox.setCurrentIndex(device_index)
+
+        # 初始化ip地址和端口信息
+        SystemMemory.set_value("ip", self.lineEdit_IP.text())
+        SystemMemory.set_value("port", int(self.lineEdit_port.text()))
+        SystemMemory.set_value("span", int(self.lineEdit_span_millisecond.text()))
 
         ports_list = list(serial.tools.list_ports.comports())
         # ports_list_value = list()
@@ -140,13 +160,12 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         return p1, p11, p2, p22, curve1, curve11, curve2, curve22, pos, series,
 
-    def FrameReciveThread(self):
+    def frame_receive_thread(self):
         net_card = self.comboBox.currentText()
         dealPackage = DealPackage(self)
         WinPcapUtils.capture_on(pattern=net_card, callback=dealPackage.packet_callback)
 
-    def PictureDrawTimer(self):
-
+    def picture_draw_timer(self):
         self.curve1.setData(self.T1_phaseBreath)
         self.curve11.setData(self.T1_wave)
         self.curve2.setData(self.T1_amp)
@@ -165,8 +184,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.series.dataProxy().resetArray(data)
 
     def data_open(self):
-        t1 = threading.Thread(target=self.FrameReciveThread)
-        t1.start()
+        frame_receive_thread = threading.Thread(target=self.frame_receive_thread)
+        frame_receive_thread.start()
 
     def serial_open(self):
         global ser
@@ -176,25 +195,26 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             ser = serial.Serial(ser_choose, 115200)  # 打开COM17，将波特率配置为115200，其余参数使用默认值
             if ser.isOpen():  # 判断串口是否成功打开
                 self.btn2.setText("关闭串口")
-                self.label_10.setText("打开串口成功。")
+                logger.info("打开串口成功。")
             else:
-                self.label_10.setText("打开串口失败。")
+                logger.info("打开串口失败。")
 
         elif btn_text == "关闭串口":
             self.btn2.setText("打开串口")
             ser.close()
-            self.label_10.setText("已关闭串口。")
+            logger.info("已关闭串口。")
 
-    def serial_send(self):
+    @staticmethod
+    def serial_send():
         if ser.isOpen():  # 判断串口是否成功打开
             while True:
                 com_input = ser.read(10)
                 if com_input:  # 如果读取结果非空，则输出
                     print(com_input)
             write_len = ser.write("ABCDEFG".encode('utf-8'))
-            print("串口发出{}个字节。".format(write_len))
+            logger.info("串口发出{}个字节。".format(write_len))
         else:
-            self.label_10.setText("未打开串口。")
+            logger.info("未打开串口。")
 
     def serial_read(self):
         x1 = float(self.lineEdit.text())
@@ -205,7 +225,14 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         doorY = float(self.lineEdit_6.text())
         height = float(self.lineEdit_7.text())
         ele = float(self.lineEdit_8.text())
-        self.label_10.setText("已读取")
+        logger.info("已读取")
+
+    # 保存发送服务信息
+    def save_server_information(self):
+        SystemMemory.set_value("ip", self.lineEdit_IP.text())
+        SystemMemory.set_value("port", int(self.lineEdit_port.text()))
+        SystemMemory.set_value("span", int(self.lineEdit_span_millisecond.text()))
+        logger.info("保存服务端信息成功！")
 
     def closeEvent(self, event):
         logger.info("退出程序!")

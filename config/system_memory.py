@@ -1,6 +1,7 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# 缓存类
 def initialize():
     global _global_dict
     _global_dict = {}

@@ -3,8 +3,11 @@ import numpy as np
 
 import struct
 import time
+from config import system_memory as SystemMemory
+from config import system_constant as SystemConstants
 
 
+# 处理数据类
 class DealPackage:
 
     def __init__(self, myWin):
@@ -18,7 +21,6 @@ class DealPackage:
         self.data = [self.data1 for index in range(self.FrameNum)]
         self.data = np.array(self.data)
         self.nFrame = 0
-
 
     def packet_callback(self, win_pcap, param, header, pkt_data):
         packet = list(pkt_data)
@@ -48,23 +50,26 @@ class DealPackage:
 
                     for i in range(4096):
                         self.data2[i] = bytesToFloat(Framedata4[i], Framedata3[i], Framedata2[i],
-                                                              Framedata1[i])
+                                                     Framedata1[i])
                     if (MODE == 0):
                         self.myWin.T1_phaseBreath = self.data2[1600:1600 + 256]
                         self.myWin.T1_phaseHeart = self.data2[1900:1900 + 256]
                         self.myWin.T1_amp = self.data2[2700:2700 + 32]
-                        self. myWin.T1_wave = self.data2[2250:2250 + 256]
+                        self.myWin.T1_wave = self.data2[2250:2250 + 256]
 
                         T1_Breath_val = self.data2[531 * 5]
                         T1_Heart_val = self.data2[531 * 5 + 1]
                         T1_RNG_val = self.data2[531 * 5 + 2]
                         T1_REAL_val = self.data2[531 * 5 + 3]
 
-                        a = str(T1_Breath_val)
-                        b = str(T1_Heart_val)
+                        breath_str = str(T1_Breath_val)
+                        heart_str = str(T1_Heart_val)
 
-                        self.myWin.label_T1_2.setText("呼吸频率：" + a + " 次/分钟")
-                        self.myWin.label_T2_2.setText("心率：" + b + " 次/分钟")
+                        SystemMemory.set_value("breathe_value", breath_str)
+                        SystemMemory.set_value("heart_value", heart_str)
+
+                        self.myWin.label_T1_2.setText("呼吸频率：" + breath_str + " 次/分钟")
+                        self.myWin.label_T2_2.setText("心率：" + heart_str + " 次/分钟")
                     if (MODE == 1):
                         R = np.array(self.data2[0:self.TargetNum * 5:5])
                         V = np.array(self.data2[1:self.TargetNum * 5:5])
@@ -94,6 +99,7 @@ class DealPackage:
                     time_end = time.time()  # 记录结束时间
                     time_sum = time_end - time_start  # 计算的时间差为程序的执行时间，单位为秒/s
                     # print(time_sum)
+
 
 def bytesToFloat(h1, h2, h3, h4):
     ba = bytearray()
