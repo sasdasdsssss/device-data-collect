@@ -43,7 +43,15 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btn2.clicked.connect(self.serial_open)  # 打开串口
         self.btn3.clicked.connect(self.serial_send)  # 打开串口
         self.btn4.clicked.connect(self.serial_read)  # 打开串口
-        self.btn_save_server.clicked.connect(self.save_server_information)  # 打开串口
+        self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
+        self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
+
+        self.btn1.setEnabled(False)
+        self.btn2.setEnabled(False)
+        self.btn3.setEnabled(False)
+        self.btn4.setEnabled(False)
+        self.btn_save_server.setEnabled(False)
+        self.btn_start_send.setEnabled(False)
 
     @staticmethod
     def init_data():
@@ -233,6 +241,17 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         SystemMemory.set_value(SystemConstants.PORT_NAME, int(self.lineEdit_port.text()))
         SystemMemory.set_value(SystemConstants.SPAN_NAME, int(self.lineEdit_span_millisecond.text()))
         logger.info("保存服务端信息成功！")
+
+    def add_content_to_text_edit_logging(self, add_text):
+        self.plainTextEdit_send.setPlainText(self.plainTextEdit_send.toPlainText() + add_text + "\n")
+        self.plainTextEdit_send.moveCursor(qg.QTextCursor.End)
+
+    def set_socket_logger(self):
+        if SystemMemory.get_value("logging"):
+            self.add_content_to_text_edit_logging(SystemMemory.get_value("logging"))
+
+    def clear_log_text(self):
+        self.plainTextEdit_send.setPlainText("")
 
     def closeEvent(self, event):
         logger.info("退出程序!")

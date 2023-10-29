@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1644</width>
-    <height>957</height>
+    <width>1701</width>
+    <height>966</height>
    </rect>
   </property>
   <property name="font">
@@ -22,9 +22,9 @@
    <widget class="QWidget" name="verticalLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>340</y>
-      <width>601</width>
+      <x>690</x>
+      <y>330</y>
+      <width>491</width>
       <height>311</height>
      </rect>
     </property>
@@ -33,9 +33,9 @@
    <widget class="QWidget" name="verticalLayoutWidget_4">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>10</y>
-      <width>601</width>
+      <x>690</x>
+      <y>0</y>
+      <width>491</width>
       <height>321</height>
      </rect>
     </property>
@@ -44,9 +44,9 @@
    <widget class="QWidget" name="verticalLayoutWidget_5">
     <property name="geometry">
      <rect>
-      <x>1070</x>
-      <y>10</y>
-      <width>551</width>
+      <x>1190</x>
+      <y>0</y>
+      <width>501</width>
       <height>321</height>
      </rect>
     </property>
@@ -55,9 +55,9 @@
    <widget class="QWidget" name="verticalLayoutWidget_6">
     <property name="geometry">
      <rect>
-      <x>1070</x>
-      <y>340</y>
-      <width>541</width>
+      <x>1190</x>
+      <y>330</y>
+      <width>501</width>
       <height>311</height>
      </rect>
     </property>
@@ -70,10 +70,10 @@
    <widget class="QWidget" name="verticalLayoutWidget_7">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>660</y>
-      <width>601</width>
-      <height>271</height>
+      <x>360</x>
+      <y>0</y>
+      <width>321</width>
+      <height>321</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="graph8">
@@ -85,10 +85,10 @@
    <widget class="QWidget" name="verticalLayoutWidget_8">
     <property name="geometry">
      <rect>
-      <x>1070</x>
-      <y>660</y>
-      <width>541</width>
-      <height>271</height>
+      <x>360</x>
+      <y>330</y>
+      <width>321</width>
+      <height>311</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="graph8_2">
@@ -102,7 +102,7 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>441</width>
+      <width>341</width>
       <height>211</height>
      </rect>
     </property>
@@ -192,7 +192,7 @@
      <rect>
       <x>10</x>
       <y>520</y>
-      <width>441</width>
+      <width>341</width>
       <height>241</height>
      </rect>
     </property>
@@ -271,7 +271,7 @@
         </font>
        </property>
        <property name="text">
-        <string>1000</string>
+        <string>10000</string>
        </property>
       </widget>
      </item>
@@ -295,7 +295,7 @@
      <rect>
       <x>10</x>
       <y>770</y>
-      <width>441</width>
+      <width>341</width>
       <height>51</height>
      </rect>
     </property>
@@ -333,7 +333,7 @@
      <rect>
       <x>10</x>
       <y>241</y>
-      <width>441</width>
+      <width>341</width>
       <height>271</height>
      </rect>
     </property>
@@ -409,6 +409,45 @@
       </widget>
      </item>
     </layout>
+   </widget>
+   <widget class="QPlainTextEdit" name="plainTextEdit_send">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>650</y>
+      <width>591</width>
+      <height>291</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPlainTextEdit" name="plainTextEdit_2">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>650</y>
+      <width>731</width>
+      <height>291</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_clear_log">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>900</y>
+      <width>167</width>
+      <height>34</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>16</pointsize>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>清除日志</string>
+    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

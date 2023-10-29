@@ -18,9 +18,13 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     myWin = MyGraphWindow()
 
-    t3 = QtCore.QTimer()
-    t3.timeout.connect(myWin.picture_draw_timer)
-    t3.start(50)
+    timer_draw_line = QtCore.QTimer()
+    timer_draw_line.timeout.connect(myWin.picture_draw_timer)
+    timer_draw_line.start(50)
+
+    timer_set_logging = QtCore.QTimer()
+    timer_set_logging.timeout.connect(myWin.set_socket_logger)
+    timer_set_logging.start(1000)
 
     time.sleep(1)
 
