@@ -261,7 +261,7 @@ class Ui_MainWindow(object):
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u7aef\u53e3", None))
         self.lineEdit_port.setText(QCoreApplication.translate("MainWindow", u"9101", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"\u53d1\u9001\u65f6\u95f4\u95f4\u9694", None))
-        self.lineEdit_span_millisecond.setText(QCoreApplication.translate("MainWindow", u"10000", None))
+        self.lineEdit_span_millisecond.setText(QCoreApplication.translate("MainWindow", u"1000", None))
         self.btn_save_server.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58", None))
         self.btn_start_send.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb\u53d1\u9001", None))
         self.btn_stop_send.setText(QCoreApplication.translate("MainWindow", u"\u505c\u6b62\u53d1\u9001", None))

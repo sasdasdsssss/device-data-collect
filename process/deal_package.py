@@ -65,7 +65,10 @@ class DealPackage:
                         breath_str = str(T1_Breath_val)
                         heart_str = str(T1_Heart_val)
 
-                        SystemMemory.set_value(SystemConstants.BREATHE_DATA_VALUE , breath_str)
+                        # print("breath_str" + breath_str)
+                        # print("heart_str" + heart_str)
+
+                        SystemMemory.set_value(SystemConstants.BREATHE_DATA_VALUE, breath_str)
                         SystemMemory.set_value(SystemConstants.HEART_DATA_VALUE, heart_str)
 
                         self.myWin.label_T1_2.setText("呼吸频率：" + breath_str + " 次/分钟")

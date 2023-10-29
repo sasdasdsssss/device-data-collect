@@ -27,11 +27,9 @@ class SocketClient:
                     SystemMemory.get_value(SystemConstants.IP_NAME), SystemMemory.get_value(SystemConstants.PORT_NAME)))
                 sock.sendto(send_heart_msg, (
                     SystemMemory.get_value(SystemConstants.IP_NAME), SystemMemory.get_value(SystemConstants.PORT_NAME)))
-                # logger.info("发送成功，间隔时间： {}", SystemMemory.get_value("span"))
-                logging_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "发送数据成功。呼吸数据：" + str(
+                logging_str = "发送数据成功。呼吸数据：" + str(
                     send_breath_data) + " 心率数据：" + str(send_heart_data)
                 SystemMemory.set_value("logging", logging_str)
                 time.sleep(SystemMemory.get_value(SystemConstants.SPAN_NAME) / 1000)
-
         finally:
             sock.close()

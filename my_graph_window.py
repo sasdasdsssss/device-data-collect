@@ -1,8 +1,11 @@
 import sys
+from datetime import datetime
+
 import numpy as np
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore
 import pyqtgraph as pg
 
+from client.socket_client import SocketClient
 from ui.ui_main_window import Ui_MainWindow
 from winpcapy import WinPcapDevices
 from winpcapy import WinPcapUtils
@@ -45,13 +48,14 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btn4.clicked.connect(self.serial_read)  # 打开串口
         self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
         self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
+        self.btn_start_send.clicked.connect(self.start_send_thread)  # 保存服务端数据
 
         self.btn1.setEnabled(False)
         self.btn2.setEnabled(False)
         self.btn3.setEnabled(False)
         self.btn4.setEnabled(False)
-        self.btn_save_server.setEnabled(False)
-        self.btn_start_send.setEnabled(False)
+        self.btn_save_server.setEnabled(True)
+        self.btn_stop_send.setEnabled(False)
 
     @staticmethod
     def init_data():
@@ -240,10 +244,12 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         SystemMemory.set_value(SystemConstants.IP_NAME, self.lineEdit_IP.text())
         SystemMemory.set_value(SystemConstants.PORT_NAME, int(self.lineEdit_port.text()))
         SystemMemory.set_value(SystemConstants.SPAN_NAME, int(self.lineEdit_span_millisecond.text()))
+        self.add_content_to_text_edit_logging("保存服务端信息成功！")
         logger.info("保存服务端信息成功！")
 
     def add_content_to_text_edit_logging(self, add_text):
-        self.plainTextEdit_send.setPlainText(self.plainTextEdit_send.toPlainText() + add_text + "\n")
+        self.plainTextEdit_send.setPlainText(self.plainTextEdit_send.toPlainText() +
+                                             datetime.now().strftime('%Y-%m-%d %H:%M:%S') + add_text + "\n")
         self.plainTextEdit_send.moveCursor(qg.QTextCursor.End)
 
     def set_socket_logger(self):
@@ -252,6 +258,15 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def clear_log_text(self):
         self.plainTextEdit_send.setPlainText("")
+
+    def start_send_thread(self):
+        # 启动 发送到socket 线程
+        socket_client_thread = threading.Thread(target=SocketClient.send_content)
+        socket_client_thread.setDaemon(True)
+        socket_client_thread.start()
+        logger.info("发送数据线程启动！")
+        self.btn_start_send.setEnabled(False)
+
 
     def closeEvent(self, event):
         logger.info("退出程序!")
