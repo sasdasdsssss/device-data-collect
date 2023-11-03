@@ -142,8 +142,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         windowContainer = QWidget.createWindowContainer(Q3D)
         # container = QWidget()
         # container.setLayout(self.graph8)
-        self.centralwidget.setLayout(self.graph8)
-        self.setCentralWidget(self.centralwidget)
+        # self.centralwidget.setLayout(self.graph8)
+        # self.setCentralWidget(self.centralwidget)
 
         self.graph8.addWidget(windowContainer)
 
@@ -250,6 +250,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         frame_receive_thread.setDaemon(True)
         frame_receive_thread.start()
         logger.info("接收数据线程启动！")
+        self.btn1.setEnabled(False)
 
     def serial_open(self):
         global ser
