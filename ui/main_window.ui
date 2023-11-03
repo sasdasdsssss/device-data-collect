@@ -91,7 +91,7 @@
       <height>311</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="graph8_2">
+    <layout class="QVBoxLayout" name="graph9">
      <property name="sizeConstraint">
       <enum>QLayout::SetMaximumSize</enum>
      </property>
@@ -219,7 +219,7 @@
         </font>
        </property>
        <property name="text">
-        <string>192.168.1.101</string>
+        <string>192.168.0.160</string>
        </property>
       </widget>
      </item>

@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 from PySide6 import QtWidgets, QtCore
 import pyqtgraph as pg
+from PySide6.QtCore import Qt
 
 from client.socket_client import SocketClient
 from ui.ui_main_window import Ui_MainWindow
@@ -15,15 +16,14 @@ import threading
 import serial
 import serial.tools.list_ports
 import PySide6.QtGui as qg
-
 from loguru import logger
 
 import os  # 用于处理文件
 
 from PySide6.QtGui import QVector3D, QLinearGradient
-from PySide6.QtDataVisualization import QAbstract3DSeries, Q3DScatter, QScatter3DSeries, \
-    QScatterDataItem, Q3DCamera, QScatterDataProxy, Q3DTheme
-from PySide6.QtWidgets import QWidget
+from PySide6.QtDataVisualization import QAbstract3DSeries, QScatter3DSeries, \
+    QScatterDataItem, Q3DCamera, QScatterDataProxy, Q3DTheme, Q3DScatter
+from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout
 
 from process.deal_package import DealPackage
 
@@ -38,7 +38,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super(MyGraphWindow, self).__init__()
         self.setupUi(self)  # 初始化窗口
         self.p1, self.p11, self.p2, self.p22, self.curve1, self.curve11, \
-            self.curve2, self.curve22, self.pos, self.series = self.set_graph_ui()  # 设置绘图窗口
+            self.curve2, self.curve22, self.pos, self.pos1, self.series, self.series1 = self.set_graph_ui()  # 设置绘图窗口
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
             self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
             self.ACTION_TYPE_DISPLAY = self.init_data()
@@ -50,7 +50,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
         self.btn_start_send.clicked.connect(self.start_send_thread)  # 保存服务端数据
 
-        self.btn1.setEnabled(False)
+        # self.btn1.setEnabled(False)
         self.btn2.setEnabled(False)
         self.btn3.setEnabled(False)
         self.btn4.setEnabled(False)
@@ -78,6 +78,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         pg.setConfigOptions(antialias=True)  # pg全局变量设置函数，antialias=True开启曲线抗锯齿
 
         pos = np.zeros((1024, 3))
+        pos1 = np.zeros((1024, 3))
 
         win_1 = pg.GraphicsLayoutWidget()  # 创建pg layout，可实现数据界面布局自动管理
         # Enable antialiasing for prettier plots
@@ -137,8 +138,14 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.label_T2_2.setText("心率：")
 
         Q3D = Q3DScatter()
-        container = QWidget.createWindowContainer(Q3D)
-        self.graph8.addWidget(container, True)
+        Q3D.setFlags(Q3D.flags() ^ Qt.FramelessWindowHint)
+        windowContainer = QWidget.createWindowContainer(Q3D)
+        # container = QWidget()
+        # container.setLayout(self.graph8)
+        self.centralwidget.setLayout(self.graph8)
+        self.setCentralWidget(self.centralwidget)
+
+        self.graph8.addWidget(windowContainer)
 
         series = QScatter3DSeries()
         series.setMeshSmooth(1)
@@ -170,7 +177,41 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         camera = Q3D.scene().activeCamera()
         camera.setCameraPreset(Q3DCamera.CameraPresetFront)
 
-        return p1, p11, p2, p22, curve1, curve11, curve2, curve22, pos, series,
+        Q3D1 = Q3DScatter()
+        container1 = QWidget.createWindowContainer(Q3D1)
+        self.graph9.addWidget(container1, True)
+
+        series1 = QScatter3DSeries()
+        series1.setMeshSmooth(1)
+        Q3D1.addSeries(series1)
+        Q3D1.axisX().setTitle("X")
+        Q3D1.axisX().setTitleVisible(True)
+        Q3D1.axisX().setRange(-5, 5)
+        Q3D1.axisY().setTitle("Y")
+        Q3D1.axisY().setTitleVisible(True)
+        Q3D1.axisY().setRange(-1.5, 1.5)
+        Q3D1.axisZ().setTitle("Z")
+        Q3D1.axisZ().setTitleVisible(True)
+        Q3D1.axisZ().setRange(0, 6)
+        Q3D1.activeTheme().setLabelBackgroundEnabled(False)
+        Q3D1.activeTheme().setBackgroundColor(qg.QColor(0, 0, 0))
+
+        series1.setMesh(QAbstract3DSeries.MeshPoint)
+        series1.setSingleHighlightColor(qg.QColor(0, 0, 90))
+        series1.setBaseColor(qg.QColor(0, 255, 255))
+        series1.setItemSize(0.4)
+
+        Qline1 = QLinearGradient()
+        Qline1.setColorAt(0.0, qg.QColor(70, 70, 70))
+        Qline1.setColorAt(0.5, qg.QColor(255, 0, 0))
+        Qline1.setColorAt(1.0, qg.QColor(0, 255, 0))
+        series1.setBaseGradient(Qline1)
+        series1.setColorStyle(Q3DTheme.ColorStyleRangeGradient)
+
+        camera = Q3D1.scene().activeCamera()
+        camera.setCameraPreset(Q3DCamera.CameraPresetFront)
+
+        return p1, p11, p2, p22, curve1, curve11, curve2, curve22, pos, pos1, series, series1
 
     def frame_receive_thread(self):
         net_card = self.comboBox.currentText()
@@ -183,21 +224,32 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.curve2.setData(self.T1_amp)
         self.curve22.setData(self.T1_phaseHeart)
 
-        data = []
-
-        for i in range(512):
-            if self.pos[i, 0] > 0:
-                data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
-
-        for i in range(512):
-            if self.pos[i, 0] > 0:
-                data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
-
+        # data = []
+        # for i in range(512):
+        #     if self.pos[i, 0] > 0:
+        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
+        #
+        # for i in range(512):
+        #     if self.pos[i, 0] > 0:
+        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
         # self.series.dataProxy().resetArray(data)
+        #
+        # data1 = []
+        # for i in range(512):
+        #     if self.pos1[i, 0] > 0:
+        #         data1.append(QScatterDataItem(QVector3D(self.pos1[i, 1], self.pos1[i, 2], self.pos1[i, 0])))
+        #
+        # for i in range(512):
+        #     if self.pos1[i, 0] > 0:
+        #         data1.append(QScatterDataItem(QVector3D(self.pos1[i, 1], -1.5, self.pos1[i, 0])))
+        # self.series1.dataProxy().resetArray(data1)
 
     def data_open(self):
+        # 启动接收线程
         frame_receive_thread = threading.Thread(target=self.frame_receive_thread)
+        frame_receive_thread.setDaemon(True)
         frame_receive_thread.start()
+        logger.info("接收数据线程启动！")
 
     def serial_open(self):
         global ser
@@ -266,7 +318,6 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         socket_client_thread.start()
         logger.info("发送数据线程启动！")
         self.btn_start_send.setEnabled(False)
-
 
     def closeEvent(self, event):
         logger.info("退出程序!")

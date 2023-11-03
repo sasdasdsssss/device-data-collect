@@ -24,12 +24,6 @@ if __name__ == '__main__':
 
     time.sleep(1)
 
-    # 启动接收线程
-    frame_receive_thread = threading.Thread(target=myWin.frame_receive_thread)
-    frame_receive_thread.setDaemon(True)
-    frame_receive_thread.start()
-    logger.info("接收数据线程启动！")
-
     timer_set_logging = QtCore.QTimer()
     timer_set_logging.timeout.connect(myWin.set_socket_logger)
     timer_set_logging.start(1000)
