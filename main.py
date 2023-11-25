@@ -10,6 +10,7 @@ from client.socket_client import SocketClient
 from my_graph_window import MyGraphWindow
 from PySide6 import QtCore
 from config import system_memory as SystemMemory
+from grab.find_device import FindDevice
 
 if __name__ == '__main__':
     # 初始化缓存
@@ -17,6 +18,12 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     myWin = MyGraphWindow()
+
+    # 启动设备发现线程
+    find_device_thread = threading.Thread(target=FindDevice(myWin).run_find_device)
+    find_device_thread.setDaemon(True)
+    find_device_thread.start()
+    logger.info("设备发现线程启动！")
 
     timer_draw_line = QtCore.QTimer()
     timer_draw_line.timeout.connect(myWin.picture_draw_timer)

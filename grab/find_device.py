@@ -1,15 +1,18 @@
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 
 import pandas as pd
 
 from loguru import logger
 
+from config import system_memory as SystemMemory
+
 
 class FindDevice:
-    def __int__(self):
-        pass
+    def __init__(self, myWin):
+        self.myWin = myWin
 
     @staticmethod
     def get_net_segment():
@@ -45,7 +48,6 @@ class FindDevice:
 
     @staticmethod
     def ping_ip_list(ips, max_workers=4):
-        logger.info("正在扫描在线列表")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_tasks = []
             for ip in ips:
@@ -65,8 +67,43 @@ class FindDevice:
         df = self.get_arp_ip_mac()
         df = df.loc[df.类型 == "动态", ["Internet 地址", "物理地址"]]
         if last is None:
-            logger.info("当前在线的设备：")
-            logger.info(df)
             for value in df.values:
-                device_list.append(value[1] + " , " + value[0])
-        return device_list
+                if value[0][-2:] != ".1":
+                    device_list.append(value[1] + "," + value[0])
+        SystemMemory.set_value("device_list", device_list)
+        for device in device_list:
+            self.myWin.listWidget_2.addItem(device)
+        while True:
+            df = self.get_arp_ip_mac()
+            df = df.loc[df.类型 == "动态", ["Internet 地址", "物理地址"]]
+            if last is None:
+                pass
+            else:
+                online = df.loc[~df.物理地址.isin(last.物理地址)]
+                offline = last[~last.物理地址.isin(df.物理地址)]
+                if online.shape[0] > 0:
+                    device_ip_list_old = SystemMemory.get_value("device_list")
+                    for value in online.values:
+                        device_str = value[1] + "," + value[0]
+                        device_ip_list_old.append(device_str)
+                        logger.info("上线设备：{}", device_str)
+                    SystemMemory.set_value("device_list", device_ip_list_old)
+                    self.myWin.listWidget_2.clear()
+                    self.myWin.listWidget_2.addItem("设备列表")
+                    for device in device_ip_list_old:
+                        self.myWin.listWidget_2.addItem(device)
+                if offline.shape[0] > 0:
+                    device_ip_list_old = SystemMemory.get_value("device_list")
+                    for value in offline.values:
+                        device_str = value[1] + "," + value[0]
+                        if device_str in device_ip_list_old:
+                            device_ip_list_old.remove(device_str)
+                            logger.info("下线设备：{}", device_str)
+                    SystemMemory.set_value("device_list", device_ip_list_old)
+                    self.myWin.listWidget_2.clear()
+                    self.myWin.listWidget_2.addItem("设备列表")
+                    for device in device_ip_list_old:
+                        self.myWin.listWidget_2.addItem(device)
+            time.sleep(15)
+            self.ping_ip_list(df["Internet 地址"].values)
+            last = df

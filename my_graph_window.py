@@ -18,6 +18,8 @@ import serial.tools.list_ports
 import PySide6.QtGui as qg
 from loguru import logger
 
+import socket
+
 import os  # 用于处理文件
 
 from PySide6.QtGui import QVector3D, QLinearGradient
@@ -44,8 +46,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
             self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
             self.ACTION_TYPE_DISPLAY = self.init_data()
-        self.btn1.clicked.connect(self.data_open)  # 打开网卡
-        # self.btn_open_wifi.clicked.connect(self.serial_open)  # 打开串口
+        self.btn1.clicked.connect(self.open_network_card)  # 打开网卡
+        self.btn_open_wifi.clicked.connect(self.open_wifi_receive)  # 打开wifi接收
         self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
         self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
         self.btn_start_send.clicked.connect(self.start_send_thread)  # 保存服务端数据
@@ -123,12 +125,6 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         SystemMemory.set_value(SystemConstants.PORT_NAME, int(self.lineEdit_port.text()))
         SystemMemory.set_value(SystemConstants.SPAN_NAME, int(self.lineEdit_span_millisecond.text()))
 
-        device_list = list(FindDevice().run_find_device())
-        # ports_list_value = list()
-        for device in device_list:
-            if device[-2:] != ".1":
-                self.listWidget_2.addItem(device)
-
         self.label_T1_2.setText("呼吸：")
         self.label_T2_2.setText("心率：")
 
@@ -172,13 +168,11 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         return p1, p11, p2, p22, curve1, curve11, curve2, curve22, pos, pos1, series, Q3D
 
-    def frame_receive_thread(self):
+    def wired_receive_thread(self):
         # 有线设备线程
         net_card = self.comboBox.currentText()
-        dealPackage = DealPackage(self)
-        WinPcapUtils.capture_on(pattern=net_card, callback=dealPackage.packet_callback)
-
-        # 无线设备线程
+        dealPackage = DealPackage(self, None)
+        WinPcapUtils.capture_on(pattern=net_card, callback=dealPackage.wired_packet_callback)
 
     def picture_draw_timer(self):
         self.curve1.setData(self.T1_phaseBreath)
@@ -201,33 +195,53 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
             self.label_T2_3.setText("姿态：躺下.")
 
-        # data = []
-        # for i in range(512):
-        #     if self.pos[i, 0] > 0:
-        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
-        #
-        # for i in range(512):
-        #     if self.pos[i, 0] > 0:
-        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
-        # self.series.dataProxy().resetArray(data)
-        #
-        # data1 = []
-        # for i in range(512):
-        #     if self.pos1[i, 0] > 0:
-        #         data1.append(QScatterDataItem(QVector3D(self.pos1[i, 1], self.pos1[i, 2], self.pos1[i, 0])))
-        #
-        # for i in range(512):
-        #     if self.pos1[i, 0] > 0:
-        #         data1.append(QScatterDataItem(QVector3D(self.pos1[i, 1], -1.5, self.pos1[i, 0])))
-        # self.series1.dataProxy().resetArray(data1)
+        data = []
+        data_val = 0
 
-    def data_open(self):
+        self.ST_x = np.zeros(512)
+        self.ST_y = np.zeros(512)
+
+        for i in range(512):
+            if self.pos[i, 0] > 0:
+                data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
+
+        for i in range(512):
+            if self.pos[i, 0] > 0:
+                # data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
+                self.ST_x[i] = self.pos[i, 1]
+                self.ST_y[i] = self.pos[i, 0]
+                data_val = 1
+
+        self.series.dataProxy().resetArray(data)
+
+    def open_network_card(self):
         # 启动接收线程
-        frame_receive_thread = threading.Thread(target=self.frame_receive_thread)
-        frame_receive_thread.setDaemon(True)
-        frame_receive_thread.start()
-        logger.info("接收数据线程启动！")
+        wired_receive_thread = threading.Thread(target=self.wired_receive_thread)
+        wired_receive_thread.setDaemon(True)
+        wired_receive_thread.start()
+        logger.info("接收有线数据线程启动！")
         self.btn1.setEnabled(False)
+
+    def open_wifi_receive(self):
+        # 启动接收线程
+        for ip_value in SystemMemory.get_value("device_list"):
+            mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            cur_udp_address = (ip_value.split(",")[1], 80)
+            # 需要发送出发数据
+            data = "hello"
+            mySocket.sendto(data.encode(), cur_udp_address)
+            logger.info("发送触发数据：{}", cur_udp_address)
+            if ip_value[-3:] == ".39":
+                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_location_wifi_package)
+                wifi_receive_thread.setDaemon(True)
+                wifi_receive_thread.start()
+                logger.info("接收wifi位置数据线程启动！")
+            if ip_value[-3:] == ".42":
+                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_parameter_wifi_package)
+                wifi_receive_thread.setDaemon(True)
+                wifi_receive_thread.start()
+                logger.info("接收wifi心率呼吸数据线程启动！")
+        self.btn_open_wifi.setEnabled(False)
 
     # 保存发送服务信息
     def save_server_information(self):
