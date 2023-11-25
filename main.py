@@ -29,5 +29,6 @@ if __name__ == '__main__':
     timer_set_logging.start(1000)
 
     # myWin.setStyleSheet("background-color: rgb(181, 181, 181)")
+
     myWin.show()
     sys.exit(app.exec())
