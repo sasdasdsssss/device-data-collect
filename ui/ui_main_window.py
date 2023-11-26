@@ -239,7 +239,7 @@ class Ui_MainWindow(object):
         self.listWidgetPersonLocation.setSortingEnabled(__sortingEnabled1)
 
         self.groupBox_4.setTitle("")
-        self.lineEdit_IP.setText(QCoreApplication.translate("MainWindow", u"192.168.0.160", None))
+        self.lineEdit_IP.setText(QCoreApplication.translate("MainWindow", u"192.168.101.45", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"\u53d1\u9001\u65f6\u95f4\u95f4\u9694", None))
         self.btn_save_server.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58", None))
         self.lineEdit_span_millisecond.setText(QCoreApplication.translate("MainWindow", u"1000", None))
