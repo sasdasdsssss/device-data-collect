@@ -1,5 +1,6 @@
 import os
 import re
+import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 
@@ -30,6 +31,21 @@ class FindDevice:
         with ThreadPoolExecutor(max_workers=4) as executor:
             for i in range(1, 255):
                 executor.submit(os.popen, f"ping -w 1 -n 1 {net_segment}.{i}")
+
+    @staticmethod
+    def get_local_ip():
+        # 获取主机名
+        hostname = socket.gethostname()
+
+        # 获取IP地址列表
+        ip_list = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
+
+        # 遍历IP地址列表，找到IPv4地址
+        for item in ip_list:
+            if item[0] == socket.AF_INET:
+                ip_address = item[4][0]
+                break
+        return ip_address
 
     @staticmethod
     def get_arp_ip_mac():
@@ -71,8 +87,7 @@ class FindDevice:
                 if value[0][-2:] != ".1":
                     device_list.append(value[1] + "," + value[0])
         SystemMemory.set_value("device_list", device_list)
-        for device in device_list:
-            self.myWin.listWidget_2.addItem(device)
+        self.myWin.init_wifi_device_list(device_list)
         while True:
             df = self.get_arp_ip_mac()
             df = df.loc[df.类型 == "动态", ["Internet 地址", "物理地址"]]
@@ -88,10 +103,7 @@ class FindDevice:
                         device_ip_list_old.append(device_str)
                         logger.info("上线设备：{}", device_str)
                     SystemMemory.set_value("device_list", device_ip_list_old)
-                    self.myWin.listWidget_2.clear()
-                    self.myWin.listWidget_2.addItem("设备列表")
-                    for device in device_ip_list_old:
-                        self.myWin.listWidget_2.addItem(device)
+                    self.myWin.init_wifi_device_list(device_ip_list_old)
                 if offline.shape[0] > 0:
                     device_ip_list_old = SystemMemory.get_value("device_list")
                     for value in offline.values:
@@ -100,10 +112,8 @@ class FindDevice:
                             device_ip_list_old.remove(device_str)
                             logger.info("下线设备：{}", device_str)
                     SystemMemory.set_value("device_list", device_ip_list_old)
-                    self.myWin.listWidget_2.clear()
-                    self.myWin.listWidget_2.addItem("设备列表")
-                    for device in device_ip_list_old:
-                        self.myWin.listWidget_2.addItem(device)
-            time.sleep(15)
+                    self.myWin.init_wifi_device_list (device_ip_list_old)
             self.ping_ip_list(df["Internet 地址"].values)
             last = df
+            time.sleep(15)
+

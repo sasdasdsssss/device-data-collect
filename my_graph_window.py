@@ -22,7 +22,7 @@ import socket
 
 import os  # 用于处理文件
 
-from PySide6.QtGui import QVector3D, QLinearGradient
+from PySide6.QtGui import QVector3D, QLinearGradient, QIcon
 from PySide6.QtDataVisualization import QAbstract3DSeries, QScatter3DSeries, \
     QScatterDataItem, Q3DCamera, QScatterDataProxy, Q3DTheme, Q3DScatter, QAbstract3DGraph
 from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout
@@ -41,6 +41,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(MyGraphWindow, self).__init__()
         self.setupUi(self)  # 初始化窗口
+        self.setWindowTitle('雷达数据发送')
+        self.setWindowIcon(QIcon('ui/main.ico'))
         self.p1, self.p11, self.p2, self.p22, self.curve1, self.curve11, \
             self.curve2, self.curve22, self.pos, self.pos1, self.series, self.Q3D = self.set_graph_ui()  # 设置绘图窗口
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
@@ -168,6 +170,18 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         return p1, p11, p2, p22, curve1, curve11, curve2, curve22, pos, pos1, series, Q3D
 
+    def init_wifi_device_list(self, device_ip_list):
+        self.listWidget_2.clear()
+        self.listWidget_2.addItem("无线设备列表")
+        for device in device_ip_list:
+            self.listWidget_2.addItem(device)
+
+    def modify_person_location_list(self, person_pos_dict):
+        self.listWidgetPersonLocation.clear()
+        self.listWidgetPersonLocation.addItem("坐标列表")
+        for person_num, person_location in person_pos_dict.items():
+            self.listWidgetPersonLocation.addItem(str(person_num) + " : " + str(person_location))
+
     def wired_receive_thread(self):
         # 有线设备线程
         net_card = self.comboBox.currentText()
@@ -207,7 +221,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for i in range(512):
             if self.pos[i, 0] > 0:
-                # data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
+                data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
                 self.ST_x[i] = self.pos[i, 1]
                 self.ST_y[i] = self.pos[i, 0]
                 data_val = 1
@@ -224,23 +238,31 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def open_wifi_receive(self):
         # 启动接收线程
-        for ip_value in SystemMemory.get_value("device_list"):
+        socket_dict = {}
+        for device_value in SystemMemory.get_value("device_list"):
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            cur_udp_address = (ip_value.split(",")[1], 80)
+            ip_value = device_value.split(",")[1]
+            cur_udp_address = (ip_value, 80)
+            # 绑定本地端口 避免重启问题
+            local_ip = FindDevice(self).get_local_ip()
+            client_udp_address = (local_ip, SystemConstants.SERVER_ADDRESS_LOCALHOST_PORT + int(ip_value.split(".")[3]))
+            logger.info("绑定udp客户端 ： {}", client_udp_address)
+            mySocket.bind(client_udp_address)
             # 需要发送出发数据
-            data = "hello"
-            mySocket.sendto(data.encode(), cur_udp_address)
+            mySocket.sendto(SystemConstants.WIFI_START_SEND_CONTENT.encode(), cur_udp_address)
+            socket_dict[cur_udp_address] = mySocket
             logger.info("发送触发数据：{}", cur_udp_address)
-            if ip_value[-3:] == ".39":
+            if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.LOCATION_RADAR_TYPE:
                 wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_location_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi位置数据线程启动！")
-            if ip_value[-3:] == ".42":
+            if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.PARAMETER_RADAR_TYPE:
                 wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_parameter_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi心率呼吸数据线程启动！")
+        SystemMemory.set_value("socket_dict", socket_dict)
         self.btn_open_wifi.setEnabled(False)
 
     # 保存发送服务信息
@@ -272,6 +294,13 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btn_start_send.setEnabled(False)
 
     def closeEvent(self, event):
+        socket_dict = SystemMemory.get_value("socket_dict")
+        if socket_dict:
+            for cur_udp_address, mySocket in socket_dict.items():
+                # 发送结束信号
+                mySocket.sendto(SystemConstants.WIFI_END_SEND_CONTENT.encode(), cur_udp_address)
+                mySocket.close()
+                logger.info("关闭wifi socket 连接! {}", cur_udp_address)
         logger.info("退出程序!")
         try:
             sys.exit(1)

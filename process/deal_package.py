@@ -1,3 +1,4 @@
+import math
 import sys
 import numpy as np
 
@@ -5,6 +6,8 @@ import struct
 import time
 from config import system_memory as SystemMemory
 from config.system_constant import SystemConstants
+
+from sklearn.cluster import DBSCAN
 
 
 # 处理数据类
@@ -36,7 +39,7 @@ class DealPackage:
                 and packet[9] == 0xC2 and packet[10] == 0x7D and packet[11] == 0xF8 \
                 and header.contents.caplen == 1040:
             self.count = self.count + 1
-            self.deal_parameter_package(packet, 1)
+            self.deal_parameter_package(packet, SystemConstants.WIRED_NETWORK_TYPE)
 
     def deal_location_wifi_package(self):
         while True:
@@ -54,66 +57,7 @@ class DealPackage:
             packet = ls
             self.FrameNum = 16
             self.TargetNum = 512
-            self.count = self.count + 1
-
-            if packet[14] == 0:
-                self.start = 1
-                self.count = 0
-            if self.start == 1:
-                tmp = packet[16:1040]
-                self.data[self.count, 0:1024] = tmp
-                if self.count == (self.FrameNum - 1):
-                    self.start = 0
-                    rxFrameData = np.squeeze(self.data.reshape(-1, 16 * 1024))
-
-                    FrameData1 = rxFrameData[0:self.FrameNum * 1024:4]
-                    FrameData2 = rxFrameData[1:self.FrameNum * 1024:4]
-                    FrameData3 = rxFrameData[2:self.FrameNum * 1024:4]
-                    FrameData4 = rxFrameData[3:self.FrameNum * 1024:4]
-
-                    for i in range(4096):
-                        self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
-
-                    R = np.array(self.data2[0:self.TargetNum * 5:5])
-                    V = np.array(self.data2[1:self.TargetNum * 5:5])
-                    P = np.array(self.data2[2:self.TargetNum * 5:5])
-                    A = np.array(self.data2[3:self.TargetNum * 5:5])
-                    E = np.array(self.data2[4:self.TargetNum * 5:5])
-
-                    P_ER = float(0)
-                    E_ER = float(1.0)
-                    P_ON = float(0)
-                    E_ON = float(1)
-                    RCS_del = float(0.05)
-                    H_del = float(5.0)
-                    L_del = float(-5.0)
-
-                    P_cal = np.pi * (P - P_ER) / 180.0
-                    E_cal = np.pi * (E - E_ER) / 180.0
-
-                    P_cal = P_cal * P_ON
-                    E_cal = E_cal * E_ON
-
-                    R_cal = R * np.cos(E_cal)
-                    H_cal = R * np.sin(E_cal)
-                    R_dis = R_cal * np.cos(P_cal)
-                    L_dis = R_cal * np.sin(P_cal)
-                    H_dis = H_cal
-
-                    self.myWin.pos = np.zeros((self.TargetNum, 3))
-                    cnt = 0
-
-                    for i in range(self.TargetNum):
-                        if A[i] < RCS_del:
-                            continue
-                        if H_dis[i] < L_del:
-                            continue
-                        if H_dis[i] > H_del:
-                            continue
-                        self.myWin.pos[cnt, 0] = R_dis[i]
-                        self.myWin.pos[cnt, 1] = L_dis[i]
-                        self.myWin.pos[cnt, 2] = H_dis[i]
-                        cnt = cnt + 1
+            self.deal_location_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
 
     def deal_parameter_wifi_package(self):
         while True:
@@ -134,9 +78,91 @@ class DealPackage:
                 self.FrameNum = 16
                 self.TargetNum = 512
                 self.count = self.count + 1
-                self.deal_parameter_package(packet, 2)
+                self.deal_parameter_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
 
-    def deal_parameter_package(self, packet, pachage_type):
+    def deal_location_package(self, packet, package_type):
+        self.count = self.count + 1
+        if packet[14] == 0:
+            self.start = 1
+            self.count = 0
+        if self.start == 1:
+            tmp = packet[16:1040]
+            self.data[self.count, 0:1024] = tmp
+            if self.count == (self.FrameNum - 1):
+                self.start = 0
+                rxFrameData = np.squeeze(self.data.reshape(-1, 16 * 1024))
+                FrameData1 = rxFrameData[0:self.FrameNum * 1024:4]
+                FrameData2 = rxFrameData[1:self.FrameNum * 1024:4]
+                FrameData3 = rxFrameData[2:self.FrameNum * 1024:4]
+                FrameData4 = rxFrameData[3:self.FrameNum * 1024:4]
+                for i in range(4096):
+                    if package_type == SystemConstants.WIRED_NETWORK_TYPE:
+                        self.data2[i] = bytesToFloat(FrameData4[i], FrameData3[i], FrameData2[i], FrameData1[i])
+                    elif package_type == SystemConstants.WIFI_NETWORK_TYPE:
+                        self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
+                R = np.array(self.data2[0:self.TargetNum * 5:5])
+                V = np.array(self.data2[1:self.TargetNum * 5:5])
+                P = np.array(self.data2[2:self.TargetNum * 5:5])
+                A = np.array(self.data2[3:self.TargetNum * 5:5])
+                E = np.array(self.data2[4:self.TargetNum * 5:5])
+
+                P_ER = float(0)
+                E_ER = float(0)
+                P_ON = float(1.0)
+                E_ON = float(1)
+                RCS_del = float(0.05)
+                H_del = float(5.0)
+                L_del = float(-5.0)
+
+                P_cal = np.pi * (P - P_ER) / 180.0
+                E_cal = np.pi * (E - E_ER) / 180.0
+
+                P_cal = P_cal * P_ON
+                E_cal = E_cal * E_ON
+
+                R_cal = R * np.cos(E_cal)
+                H_cal = R * np.sin(E_cal)
+                R_dis = R_cal * np.cos(P_cal)
+                L_dis = R_cal * np.sin(P_cal)
+                H_dis = H_cal
+                # print(R_dis)
+
+                self.myWin.pos = np.zeros((self.TargetNum, 3))
+                cnt = 0
+                R_dis_no_zero = [x for x in R_dis if x != 0]
+                L_dis_no_zero = [x for x in L_dis if x != 0]
+                H_dis_no_zero = [x for x in H_dis if x != 0]
+                for i in range(len(R_dis_no_zero)):
+                    if A[i] < RCS_del:
+                        continue
+                    if H_dis[i] < L_del:
+                        continue
+                    if H_dis[i] > H_del:
+                        continue
+                    self.myWin.pos[cnt, 0] = R_dis_no_zero[i]
+                    self.myWin.pos[cnt, 1] = L_dis_no_zero[i]
+                    self.myWin.pos[cnt, 2] = H_dis_no_zero[i]
+                    cnt = cnt + 1
+
+                # 半秒处理一次
+                self.data_counts = self.data_counts + 1
+                if self.data_counts >= 10:
+                    R_real = np.zeros(self.TargetNum)
+                    L_real = np.zeros(self.TargetNum)
+                    H_real = np.zeros(self.TargetNum)
+                    for i in range(self.TargetNum):
+                        if A[i] < 0.05:
+                            continue
+                        R_real[i] = R_dis[i]
+                        L_real[i] = L_dis[i]
+                        H_real[i] = H_dis[i]
+
+                    # 根据 R_dis 和 L_dis 创建一个新的二维数组
+                    points = np.column_stack((R_real, L_real, H_real))
+                    self.deal_cluster_person_point(points)
+                    self.data_counts = 0
+
+    def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:
             self.start = 1
             self.count = 0
@@ -154,10 +180,10 @@ class DealPackage:
                 Framedata4 = rxFramedata[3:self.FrameNum * 1024:4]
 
                 for i in range(4096):
-                    if pachage_type == 1:
+                    if network_type == SystemConstants.WIRED_NETWORK_TYPE:
                         self.data2[i] = bytesToFloat(Framedata4[i], Framedata3[i], Framedata2[i],
                                                      Framedata1[i])
-                    elif pachage_type == 2:
+                    elif network_type == SystemConstants.WIFI_NETWORK_TYPE:
                         self.data2[i] = bytesToFloat(Framedata3[i], Framedata4[i], Framedata1[i],
                                                      Framedata2[i])
                 # 0 时，处理呼吸数据
@@ -172,14 +198,86 @@ class DealPackage:
                     T1_RNG_val = self.data2[531 * 5 + 2]
                     T1_REAL_val = self.data2[531 * 5 + 3]
 
-                    if T1_Heart_val < 250:
-                        breath_str = str(T1_Breath_val)
-                        heart_str = str(T1_Heart_val)
-
+                    # 10个点为一组，去掉最大，去掉最小
+                    self.data_counts = self.data_counts + 1
+                    self.breathe_data_list.append(T1_Breath_val)
+                    self.heart_data_list.append(T1_Heart_val)
+                    if self.data_counts >= 10:
+                        self.breathe_data_list.remove(max(self.breathe_data_list))
+                        self.breathe_data_list.remove(min(self.breathe_data_list))
+                        breath_average = sum(self.breathe_data_list) / len(self.breathe_data_list)
+                        self.heart_data_list.remove(max(self.heart_data_list))
+                        self.heart_data_list.remove(min(self.heart_data_list))
+                        heart_average = sum(self.heart_data_list) / len(self.heart_data_list)
+                        breath_str = str(int(breath_average))
+                        heart_str = str(int(heart_average))
                         SystemMemory.set_value(SystemConstants.BREATHE_DATA_VALUE, breath_str)
                         SystemMemory.set_value(SystemConstants.HEART_DATA_VALUE, heart_str)
                         self.myWin.label_T1_2.setText("呼吸：" + breath_str + " 次/分钟")
                         self.myWin.label_T2_2.setText("心率：" + heart_str + " 次/分钟")
+                        self.data_counts = 0
+                        self.breathe_data_list = []
+                        self.heart_data_list = []
+
+    def deal_cluster_person_point(self, points):
+        # 使用 DBSCAN 算法进行聚类
+        dbscan = DBSCAN(eps=1, min_samples=15)  # eps 半径、min_samples 最小样本数
+        clusters = dbscan.fit_predict(points)
+
+        # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
+        num_clusters = len(set(clusters)) - (1 if -1 in clusters else 0)
+
+        # 将相近的点分组到各自的数组中
+        clustered_points = {}
+        for i, cluster in enumerate(clusters):
+            if cluster == -1:
+                continue
+            if cluster not in clustered_points:
+                clustered_points[cluster] = []
+            clustered_points[cluster].append(points[i])
+
+        """
+          # 打印分组后的点
+          for cluster, points in clustered_points.items():
+              print(f"群体 {cluster}: {points}")
+          """
+        for cluster, points in clustered_points.items():
+            points_array = np.array(points)
+            avg_R_dis = np.mean(points_array[:, 0])
+            avg_L_dis = np.mean(points_array[:, 1])
+            avg_H_dis = np.mean(points_array[:, 2])
+            # 存储在 myWin.pos 中
+            cur_person_pos_tuple = (round(avg_R_dis * 5, 6), round(avg_L_dis * 5, 6))
+            if abs(cur_person_pos_tuple[0]) < 1 and abs(cur_person_pos_tuple[1]) < 1:
+                return
+            self.modify_person_pos_dict(cur_person_pos_tuple)
+
+    # 比较在缓存中是否存在该位置的人
+    def modify_person_pos_dict(self, new_cluster_person_point):
+        person_pos_dict = SystemMemory.get_value("person_pos_dict")
+        if person_pos_dict:
+            for person_num, person_pos in person_pos_dict.items():
+                # 判断是否对应位置的人
+                if self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0], new_cluster_person_point[1],
+                                            person_pos[1]) < 5:
+                    person_pos_dict[person_num] = new_cluster_person_point
+                    break
+            else:
+                # 没找到对应的人，添加一个人
+                person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+        else:
+            # 添加一个人
+            person_pos_dict = {0: new_cluster_person_point}
+        SystemMemory.set_value("person_pos_dict", person_pos_dict)
+        # print(person_pos_dict)
+        self.myWin.modify_person_location_list(person_pos_dict)
+
+    @staticmethod
+    def calculate_sqrt_diff(a, b, c, d):
+        diff1 = (a - b) ** 2
+        diff2 = (c - d) ** 2
+        sqrt_sum = math.sqrt(diff1 + diff2)
+        return sqrt_sum
 
 
 def bytesToFloat(h1, h2, h3, h4):

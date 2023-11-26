@@ -217,7 +217,7 @@
     <property name="title">
      <string/>
     </property>
-    <widget class="QListWidget" name="listWidget">
+    <widget class="QListWidget" name="listWidgetPersonLocation">
      <property name="geometry">
       <rect>
        <x>10</x>
