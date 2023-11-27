@@ -141,7 +141,8 @@ class DealPackage:
                         continue
                     self.myWin.pos[cnt, 0] = R_dis_no_zero[i]
                     self.myWin.pos[cnt, 1] = L_dis_no_zero[i]
-                    self.myWin.pos[cnt, 2] = H_dis_no_zero[i]
+                    if len(H_dis_no_zero) > i:
+                        self.myWin.pos[cnt, 2] = H_dis_no_zero[i]
                     cnt = cnt + 1
 
                 # 半秒处理一次
@@ -221,7 +222,7 @@ class DealPackage:
 
     def deal_cluster_person_point(self, points):
         # 使用 DBSCAN 算法进行聚类
-        dbscan = DBSCAN(eps=1, min_samples=15)  # eps 半径、min_samples 最小样本数
+        dbscan = DBSCAN(eps=1, min_samples=2)  # eps 半径、min_samples 最小样本数
         clusters = dbscan.fit_predict(points)
 
         # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
@@ -247,10 +248,11 @@ class DealPackage:
             avg_L_dis = np.mean(points_array[:, 1])
             avg_H_dis = np.mean(points_array[:, 2])
             # 存储在 myWin.pos 中
-            cur_person_pos_tuple = (round(avg_R_dis * 5, 6), round(avg_L_dis * 5, 6))
+            cur_person_pos_tuple = (round(avg_R_dis * 10, 6), round(avg_L_dis * 10, 6))
             if abs(cur_person_pos_tuple[0]) < 1 and abs(cur_person_pos_tuple[1]) < 1:
                 return
             self.modify_person_pos_dict(cur_person_pos_tuple)
+            print(cur_person_pos_tuple)
 
     # 比较在缓存中是否存在该位置的人
     def modify_person_pos_dict(self, new_cluster_person_point):
@@ -259,18 +261,62 @@ class DealPackage:
             for person_num, person_pos in person_pos_dict.items():
                 # 判断是否对应位置的人
                 if self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0], new_cluster_person_point[1],
-                                            person_pos[1]) < 5:
+                                            person_pos[1]) < 30:
+                    print("更新人的位置")
                     person_pos_dict[person_num] = new_cluster_person_point
                     break
+            # 没找到对应的人，添加一个人
+            if self.person_in_door(new_cluster_person_point) == 1:
+                print("门附近 出现人，进入，添加人")
+                person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+            elif self.person_in_door(new_cluster_person_point) == 2:
+                print("门附近 出现人，出门 ，减少人")
+                person_pos_dict.pop(person_num)
             else:
-                # 没找到对应的人，添加一个人
+                # 没有人，人从其他地方出现，添加人
+                print("没有人，人从其他地方出现，添加人")
                 person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
         else:
             # 添加一个人
+            print("没有记录，添加人")
             person_pos_dict = {0: new_cluster_person_point}
         SystemMemory.set_value("person_pos_dict", person_pos_dict)
         # print(person_pos_dict)
         self.myWin.modify_person_location_list(person_pos_dict)
+
+    def update_person_location(self, new_cluster_person_point):
+        person_pos_dict = SystemMemory.get_value("person_pos_dict")
+        if person_pos_dict:
+            for person_num, person_pos in person_pos_dict.items():
+                # 判断是否对应位置的人
+                if self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0], new_cluster_person_point[1],
+                                            person_pos[1]) < 30:
+                    print("更新人的位置")
+                    person_pos_dict[person_num] = new_cluster_person_point
+
+    #  判断人是否进入
+    @staticmethod
+    def person_in_door(new_cluster_person_point):
+        old_door_cluseter_person_point = SystemMemory.get_value("old_door_cluseter_person_point")
+        # 到门附近，开始判断是进入还是出去
+        if abs(new_cluster_person_point[0] - SystemConstants.DOOR_LOCATION_X) < 3 and abs(
+                new_cluster_person_point[1] - SystemConstants.DOOR_LOCATION_Y) < 3:
+            if old_door_cluseter_person_point:
+                # 如果坐标减小，是进入
+                if old_door_cluseter_person_point[0] > new_cluster_person_point[0] and old_door_cluseter_person_point[
+                    1] > new_cluster_person_point[1]:
+                    return 1
+                # 如果坐标增大，是出去
+                elif old_door_cluseter_person_point[0] < new_cluster_person_point[0] and old_door_cluseter_person_point[
+                    1] < new_cluster_person_point[1]:
+                    return 2
+            else:
+                # 没有前一个坐标，判断也是进入
+                SystemMemory.set_value("old_door_cluseter_person_point", new_cluster_person_point)
+                return 1
+        else:
+            # 不在门附近
+            return 0
 
     @staticmethod
     def calculate_sqrt_diff(a, b, c, d):

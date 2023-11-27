@@ -59,3 +59,9 @@ SystemConstants.SERVER_ADDRESS_LOCALHOST_PORT = 13010
 SystemConstants.WIRED_NETWORK_TYPE = 1
 # 无线网络类型
 SystemConstants.WIFI_NETWORK_TYPE = 2
+
+# 门位置的坐标X
+SystemConstants.DOOR_LOCATION_X = 75
+
+# 门位置的坐标Y
+SystemConstants.DOOR_LOCATION_Y = -15
