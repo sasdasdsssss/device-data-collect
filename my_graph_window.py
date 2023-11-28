@@ -197,34 +197,31 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.TNUM >= 1:
             pass
         if self.ACTION_TYPE_DISPLAY == SystemConstants.NO_PEOPLE:
-            self.label_T2_3.setText("姿态：无人.")
+            self.label_T2_4.setText("无人.")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.WALKING:
-            self.label_T2_3.setText("姿态：走动.")
+            self.label_T2_4.setText("走动.")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.STANDING:
-            self.label_T2_3.setText("姿态：站立.")
+            self.label_T2_4.setText("站立.")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.SIT_DOWN:
-            self.label_T2_3.setText("姿态：坐下.")
+            self.label_T2_4.setText("坐下.")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.FALL_DOWN:
-            self.label_T2_3.setText("姿态：跌倒！")
+            self.label_T2_4.setText("跌倒！")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
-            self.label_T2_3.setText("姿态：躺下.")
+            self.label_T2_4.setText("躺下.")
 
         data = []
         data_val = 0
 
-        self.ST_x = np.zeros(512)
-        self.ST_y = np.zeros(512)
+        # self.ST_x = np.zeros(512)
+        # self.ST_y = np.zeros(512)
 
         for i in range(512):
             if self.pos[i, 0] > 0:
                 data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
 
-        for i in range(512):
-            if self.pos[i, 0] > 0:
-                data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
-                self.ST_x[i] = self.pos[i, 1]
-                self.ST_y[i] = self.pos[i, 0]
-                data_val = 1
+        # for i in range(512):
+        #     if self.pos[i, 0] > 0:
+        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
 
         self.series.dataProxy().resetArray(data)
 

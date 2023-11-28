@@ -80,89 +80,6 @@ class DealPackage:
                 self.count = self.count + 1
                 self.deal_parameter_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
 
-    def deal_location_package(self, packet, package_type):
-        self.count = self.count + 1
-        if packet[14] == 0:
-            self.start = 1
-            self.count = 0
-        if self.start == 1:
-            tmp = packet[16:1040]
-            self.data[self.count, 0:1024] = tmp
-            if self.count == (self.FrameNum - 1):
-                self.start = 0
-                rxFrameData = np.squeeze(self.data.reshape(-1, 16 * 1024))
-                FrameData1 = rxFrameData[0:self.FrameNum * 1024:4]
-                FrameData2 = rxFrameData[1:self.FrameNum * 1024:4]
-                FrameData3 = rxFrameData[2:self.FrameNum * 1024:4]
-                FrameData4 = rxFrameData[3:self.FrameNum * 1024:4]
-                for i in range(4096):
-                    if package_type == SystemConstants.WIRED_NETWORK_TYPE:
-                        self.data2[i] = bytesToFloat(FrameData4[i], FrameData3[i], FrameData2[i], FrameData1[i])
-                    elif package_type == SystemConstants.WIFI_NETWORK_TYPE:
-                        self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
-                R = np.array(self.data2[0:self.TargetNum * 5:5])
-                V = np.array(self.data2[1:self.TargetNum * 5:5])
-                P = np.array(self.data2[2:self.TargetNum * 5:5])
-                A = np.array(self.data2[3:self.TargetNum * 5:5])
-                E = np.array(self.data2[4:self.TargetNum * 5:5])
-
-                P_ER = float(0)
-                E_ER = float(0)
-                P_ON = float(1.0)
-                E_ON = float(1)
-                RCS_del = float(0.05)
-                H_del = float(5.0)
-                L_del = float(-5.0)
-
-                P_cal = np.pi * (P - P_ER) / 180.0
-                E_cal = np.pi * (E - E_ER) / 180.0
-
-                P_cal = P_cal * P_ON
-                E_cal = E_cal * E_ON
-
-                R_cal = R * np.cos(E_cal)
-                H_cal = R * np.sin(E_cal)
-                R_dis = R_cal * np.cos(P_cal)
-                L_dis = R_cal * np.sin(P_cal)
-                H_dis = H_cal
-                # print(R_dis)
-
-                self.myWin.pos = np.zeros((self.TargetNum, 3))
-                cnt = 0
-                R_dis_no_zero = [x for x in R_dis if x != 0]
-                L_dis_no_zero = [x for x in L_dis if x != 0]
-                H_dis_no_zero = [x for x in H_dis if x != 0]
-                for i in range(len(R_dis_no_zero)):
-                    if A[i] < RCS_del:
-                        continue
-                    if H_dis[i] < L_del:
-                        continue
-                    if H_dis[i] > H_del:
-                        continue
-                    self.myWin.pos[cnt, 0] = R_dis_no_zero[i]
-                    self.myWin.pos[cnt, 1] = L_dis_no_zero[i]
-                    if len(H_dis_no_zero) > i:
-                        self.myWin.pos[cnt, 2] = H_dis_no_zero[i]
-                    cnt = cnt + 1
-
-                # 半秒处理一次
-                self.data_counts = self.data_counts + 1
-                if self.data_counts >= 10:
-                    R_real = np.zeros(self.TargetNum)
-                    L_real = np.zeros(self.TargetNum)
-                    H_real = np.zeros(self.TargetNum)
-                    for i in range(self.TargetNum):
-                        if A[i] < 0.05:
-                            continue
-                        R_real[i] = R_dis[i]
-                        L_real[i] = L_dis[i]
-                        H_real[i] = H_dis[i]
-
-                    # 根据 R_dis 和 L_dis 创建一个新的二维数组
-                    points = np.column_stack((R_real, L_real, H_real))
-                    self.deal_cluster_person_point(points)
-                    self.data_counts = 0
-
     def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:
             self.start = 1
@@ -220,9 +137,78 @@ class DealPackage:
                         self.breathe_data_list = []
                         self.heart_data_list = []
 
+    def deal_location_package(self, packet, package_type):
+        self.count = self.count + 1
+        if packet[14] == 0:
+            self.start = 1
+            self.count = 0
+        if self.start == 1:
+            tmp = packet[16:1040]
+            self.data[self.count, 0:1024] = tmp
+            if self.count == (self.FrameNum - 1):
+                self.start = 0
+                rxFrameData = np.squeeze(self.data.reshape(-1, 16 * 1024))
+
+                FrameData1 = rxFrameData[0:self.FrameNum * 1024:4]
+                FrameData2 = rxFrameData[1:self.FrameNum * 1024:4]
+                FrameData3 = rxFrameData[2:self.FrameNum * 1024:4]
+                FrameData4 = rxFrameData[3:self.FrameNum * 1024:4]
+
+                for i in range(4096):
+                    if package_type == SystemConstants.WIRED_NETWORK_TYPE:
+                        self.data2[i] = bytesToFloat(FrameData4[i], FrameData3[i], FrameData2[i], FrameData1[i])
+                    elif package_type == SystemConstants.WIFI_NETWORK_TYPE:
+                        self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
+
+                self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
+                tnum = int(self.data2[3002] / 1)
+
+                self.myWin.TNUM = tnum
+
+                R = np.array(self.data2[0:self.TargetNum * 5:5])
+                V = np.array(self.data2[1:self.TargetNum * 5:5])
+                P = np.array(self.data2[2:self.TargetNum * 5:5])
+                A = np.array(self.data2[3:self.TargetNum * 5:5])
+                E = np.array(self.data2[4:self.TargetNum * 5:5])
+                P_cal = np.pi * P / 180.0
+                E_cal = np.pi * E / 180.0
+                R_cal = R * np.cos(E_cal)
+                H_cal = R * np.sin(E_cal)
+                R_dis = R_cal * np.cos(P_cal)
+                L_dis = R_cal * np.sin(P_cal)
+                H_dis = H_cal
+
+                self.myWin.pos = np.zeros((self.TargetNum, 3))
+                cnt = 0
+                for i in range(self.TargetNum):
+                    if A[i] < 0.05:
+                        continue
+                    self.myWin.pos[cnt, 0] = R_dis[i]
+                    self.myWin.pos[cnt, 1] = L_dis[i]
+                    self.myWin.pos[cnt, 2] = H_dis[i]
+                    cnt = cnt + 1
+                # 半秒处理一次
+                self.data_counts = self.data_counts + 1
+                if self.data_counts >= 10:
+                    R_real = np.zeros(self.TargetNum)
+                    L_real = np.zeros(self.TargetNum)
+                    H_real = np.zeros(self.TargetNum)
+                    for i in range(self.TargetNum):
+                        if A[i] < 0.05:
+                            continue
+                        R_real[i] = R_dis[i]
+                        L_real[i] = L_dis[i]
+                        H_real[i] = H_dis[i]
+
+                    # 根据 R_dis 和 L_dis 创建一个新的二维数组
+                    points = np.column_stack((R_real, L_real))
+                    # print(points)
+                    self.deal_cluster_person_point(points)
+                    self.data_counts = 0
+
     def deal_cluster_person_point(self, points):
         # 使用 DBSCAN 算法进行聚类
-        dbscan = DBSCAN(eps=1, min_samples=2)  # eps 半径、min_samples 最小样本数
+        dbscan = DBSCAN(eps=1, min_samples=1)  # eps 半径、min_samples 最小样本数
         clusters = dbscan.fit_predict(points)
 
         # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
@@ -246,74 +232,85 @@ class DealPackage:
             points_array = np.array(points)
             avg_R_dis = np.mean(points_array[:, 0])
             avg_L_dis = np.mean(points_array[:, 1])
-            avg_H_dis = np.mean(points_array[:, 2])
             # 存储在 myWin.pos 中
-            cur_person_pos_tuple = (round(avg_R_dis * 10, 6), round(avg_L_dis * 10, 6))
-            if abs(cur_person_pos_tuple[0]) < 1 and abs(cur_person_pos_tuple[1]) < 1:
+            cur_person_pos_tuple = (round(avg_R_dis, 6), round(avg_L_dis, 6))
+            if abs(cur_person_pos_tuple[0]) < 0.5 and abs(cur_person_pos_tuple[1]) < 0.5:
                 return
             self.modify_person_pos_dict(cur_person_pos_tuple)
-            print(cur_person_pos_tuple)
 
     # 比较在缓存中是否存在该位置的人
     def modify_person_pos_dict(self, new_cluster_person_point):
         person_pos_dict = SystemMemory.get_value("person_pos_dict")
+        if new_cluster_person_point[0] > 7.4 or new_cluster_person_point[0] < 1:
+            return
+        if new_cluster_person_point[1] > 3.0 or new_cluster_person_point[1] < -4:
+            return
         if person_pos_dict:
-            for person_num, person_pos in person_pos_dict.items():
-                # 判断是否对应位置的人
-                if self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0], new_cluster_person_point[1],
-                                            person_pos[1]) < 30:
-                    print("更新人的位置")
-                    person_pos_dict[person_num] = new_cluster_person_point
-                    break
-            # 没找到对应的人，添加一个人
+            if self.update_person_location(new_cluster_person_point, person_pos_dict):
+                # 没有人，人从其他地方出现，添加人
+                print("没有人，人从其他地方出现，添加人")
+                person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+            # 门附近 出现人，进入，添加人
             if self.person_in_door(new_cluster_person_point) == 1:
                 print("门附近 出现人，进入，添加人")
                 person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
             elif self.person_in_door(new_cluster_person_point) == 2:
                 print("门附近 出现人，出门 ，减少人")
-                person_pos_dict.pop(person_num)
-            else:
-                # 没有人，人从其他地方出现，添加人
-                print("没有人，人从其他地方出现，添加人")
-                person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+                # person_pos_dict.pop(person_num)
         else:
             # 添加一个人
             print("没有记录，添加人")
             person_pos_dict = {0: new_cluster_person_point}
         SystemMemory.set_value("person_pos_dict", person_pos_dict)
-        # print(person_pos_dict)
         self.myWin.modify_person_location_list(person_pos_dict)
 
-    def update_person_location(self, new_cluster_person_point):
-        person_pos_dict = SystemMemory.get_value("person_pos_dict")
-        if person_pos_dict:
-            for person_num, person_pos in person_pos_dict.items():
-                # 判断是否对应位置的人
-                if self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0], new_cluster_person_point[1],
-                                            person_pos[1]) < 30:
-                    print("更新人的位置")
-                    person_pos_dict[person_num] = new_cluster_person_point
+    def update_person_location(self, new_cluster_person_point, person_pos_dict):
+        sqrt_diff_list_x = []
+        sqrt_diff_list_y = []
+        sqrt_diff_list_all = []
+        for person_num, person_pos in person_pos_dict.items():
+            sqrt_diff_list_x.append(abs(new_cluster_person_point[0] - person_pos[0]))
+            sqrt_diff_list_y.append(abs(new_cluster_person_point[1] - person_pos[1]))
+            sqrt_diff_list_all.append(self.calculate_sqrt_diff(new_cluster_person_point[0], person_pos[0],
+                                                               new_cluster_person_point[1],
+                                                               person_pos[1]))
+        min_index = sqrt_diff_list_all.index(min(sqrt_diff_list_all))
+        if sqrt_diff_list_all[min_index] < 4:
+            if sqrt_diff_list_x[min_index] < 1 and sqrt_diff_list_y[min_index] < 1:
+                print("更新人的位置" + str(new_cluster_person_point))
+                person_pos_dict[min_index] = new_cluster_person_point
+                return False
+            else:
+                return False
+        else:
+            return True
 
     #  判断人是否进入
     @staticmethod
     def person_in_door(new_cluster_person_point):
         old_door_cluseter_person_point = SystemMemory.get_value("old_door_cluseter_person_point")
         # 到门附近，开始判断是进入还是出去
-        if abs(new_cluster_person_point[0] - SystemConstants.DOOR_LOCATION_X) < 3 and abs(
-                new_cluster_person_point[1] - SystemConstants.DOOR_LOCATION_Y) < 3:
+        if abs(new_cluster_person_point[0] - SystemConstants.DOOR_LOCATION_X) < 1 and abs(
+                new_cluster_person_point[1] - SystemConstants.DOOR_LOCATION_Y) < 1:
+            print("处理门附近的聚点信息 " + str(new_cluster_person_point))
+            # 设置旧的坐标
+            SystemMemory.set_value("old_door_cluseter_person_point", new_cluster_person_point)
             if old_door_cluseter_person_point:
                 # 如果坐标减小，是进入
-                if old_door_cluseter_person_point[0] > new_cluster_person_point[0] and old_door_cluseter_person_point[
-                    1] > new_cluster_person_point[1]:
+                if abs(old_door_cluseter_person_point[0] - new_cluster_person_point[0]) < 0.2:
+                    return 0
+                elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] > 0.2:
+                    print("----------进入进入进入---------------进入----进入------------------------")
+                    # time.sleep(0.05)
                     return 1
                 # 如果坐标增大，是出去
-                elif old_door_cluseter_person_point[0] < new_cluster_person_point[0] and old_door_cluseter_person_point[
-                    1] < new_cluster_person_point[1]:
+                elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] < -0.2:
+                    print("-------------------出去-出去-出去-------出去--------------出去-出去-出去----------")
+                    # time.sleep(0.05)
                     return 2
             else:
                 # 没有前一个坐标，判断也是进入
-                SystemMemory.set_value("old_door_cluseter_person_point", new_cluster_person_point)
-                return 1
+                return 0
         else:
             # 不在门附近
             return 0
