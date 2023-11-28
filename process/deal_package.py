@@ -301,12 +301,10 @@ class DealPackage:
                     return 0
                 elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] > 0.2:
                     print("----------进入进入进入---------------进入----进入------------------------")
-                    # time.sleep(0.05)
                     return 1
                 # 如果坐标增大，是出去
                 elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] < -0.2:
                     print("-------------------出去-出去-出去-------出去--------------出去-出去-出去----------")
-                    # time.sleep(0.05)
                     return 2
             else:
                 # 没有前一个坐标，判断也是进入
