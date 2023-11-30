@@ -45,7 +45,7 @@ SystemConstants.FALL_DOWN = 4
 # 躺下
 SystemConstants.LIE_DOWN = 5
 # 配置wifi 对应ip地址类型
-SystemConstants.WIFI_ADDRESS_TYPE = {"192.168.101.39": 2, "192.168.101.42": 2, "192.168.101.43": 2}
+SystemConstants.WIFI_ADDRESS_TYPE = {"192.168.101.39": 2, "192.168.101.42": 3, "192.168.101.43": 3}
 # udp 发送触发信息
 SystemConstants.WIFI_START_SEND_CONTENT = "hello"
 # udp 发送结束信息
@@ -54,6 +54,8 @@ SystemConstants.WIFI_END_SEND_CONTENT = "exit"
 SystemConstants.LOCATION_RADAR_TYPE = 2
 # 心率呼吸类型
 SystemConstants.PARAMETER_RADAR_TYPE = 1
+# 姿态类型
+SystemConstants.POSTURE_RADAR_TYPE = 3
 # 配置本地udp端口地址
 SystemConstants.SERVER_ADDRESS_LOCALHOST_PORT = 13010
 # 有线网络类型
@@ -62,7 +64,7 @@ SystemConstants.WIRED_NETWORK_TYPE = 1
 SystemConstants.WIFI_NETWORK_TYPE = 2
 
 # 门位置的坐标X
-SystemConstants.DOOR_LOCATION_X = 7.2
+SystemConstants.DOOR_LOCATION_X = 6.5
 
 # 门位置的坐标Y
-SystemConstants.DOOR_LOCATION_Y = -1.5
+SystemConstants.DOOR_LOCATION_Y = -2.4

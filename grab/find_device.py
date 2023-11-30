@@ -84,7 +84,8 @@ class FindDevice:
         df = df.loc[df.类型 == "动态", ["Internet 地址", "物理地址"]]
         if last is None:
             for value in df.values:
-                if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101" and value[0][-3:] != ".43":
+                #  and value[0][-3:] != ".43"
+                if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101":
                     device_list.append(value[1] + "," + value[0])
         SystemMemory.set_value("device_list", device_list)
         self.myWin.init_wifi_device_list(device_list)
@@ -99,7 +100,8 @@ class FindDevice:
                 if online.shape[0] > 0:
                     device_ip_list_old = SystemMemory.get_value("device_list")
                     for value in online.values:
-                        if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101" and value[0][-3:] != ".43":
+                        #  and value[0][-3:] != ".43"
+                        if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101":
                             device_str = value[1] + "," + value[0]
                             device_ip_list_old.append(device_str)
                             logger.info("上线设备：{}", device_str)

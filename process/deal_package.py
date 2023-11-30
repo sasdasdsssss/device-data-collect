@@ -59,12 +59,27 @@ class DealPackage:
             self.TargetNum = 512
             self.deal_location_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
 
+    def deal_posture_wifi_package(self):
+        while True:
+            packet_in, addr = self.mySocket.recvfrom(1040)
+            if len(packet_in) == 1040:
+                result_recv_data = packet_in.hex()
+                ls = []
+                a = len(result_recv_data) // 2
+
+                for i in range(len(result_recv_data) // 2):
+                    tmp = result_recv_data[i * 2] + result_recv_data[i * 2 + 1]
+                    tmp_int = int(tmp, 16)
+                    ls.append(tmp_int)
+
+                packet = ls
+                self.deal_posture_package(packet)
+
     def deal_parameter_wifi_package(self):
         while True:
             packet_in, addr = self.mySocket.recvfrom(1040)
             if len(packet_in) == 1040:
                 result_recv_data = packet_in.hex()
-                # print(result_recv_data)
                 ls = []
                 a = len(result_recv_data) // 2
 
@@ -79,6 +94,34 @@ class DealPackage:
                 self.TargetNum = 512
                 self.count = self.count + 1
                 self.deal_parameter_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
+
+    def deal_posture_package(self, packet):
+        self.FrameNum = 16
+        self.TargetNum = 512
+        self.count = self.count + 1
+
+        if packet[14] == 0:
+            self.start = 1
+            self.count = 0
+        if self.start == 1:
+            tmp = packet[16:1040]
+            # a = int(result_recv_data[29], 16)
+            self.data[self.count, 0:1024] = tmp
+            # data[a, 0:1024] = tmp
+            if self.count == (self.FrameNum - 1):
+                self.start = 0
+                rxFrameData = np.squeeze(self.data.reshape(-1, 16 * 1024))
+
+                FrameData1 = rxFrameData[0:self.FrameNum * 1024:4]
+                FrameData2 = rxFrameData[1:self.FrameNum * 1024:4]
+                FrameData3 = rxFrameData[2:self.FrameNum * 1024:4]
+                FrameData4 = rxFrameData[3:self.FrameNum * 1024:4]
+
+                for i in range(4096):
+                    self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
+
+                self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
+                SystemMemory.set_value("petient_posture", self.myWin.ACTION_TYPE_DISPLAY)
 
     def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:
@@ -160,9 +203,8 @@ class DealPackage:
                     elif package_type == SystemConstants.WIFI_NETWORK_TYPE:
                         self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
 
-                self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
+                # self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
                 tnum = int(self.data2[3002] / 1)
-
                 self.myWin.TNUM = tnum
 
                 R = np.array(self.data2[0:self.TargetNum * 5:5])
@@ -208,7 +250,7 @@ class DealPackage:
 
     def deal_cluster_person_point(self, points):
         # 使用 DBSCAN 算法进行聚类
-        dbscan = DBSCAN(eps=1, min_samples=1)  # eps 半径、min_samples 最小样本数
+        dbscan = DBSCAN(eps=1, min_samples=2)  # eps 半径、min_samples 最小样本数
         clusters = dbscan.fit_predict(points)
 
         # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
@@ -238,6 +280,18 @@ class DealPackage:
                 return
             self.modify_person_pos_dict(cur_person_pos_tuple)
 
+    def get_door_person_index(self):
+        person_pos_dict = SystemMemory.get_value("person_pos_dict")
+        door_index_list = []
+        for person_num, person_pos in person_pos_dict.items():
+            if self.calculate_sqrt_diff(SystemConstants.DOOR_LOCATION_X, person_pos[0],
+                                        SystemConstants.DOOR_LOCATION_Y,
+                                        person_pos[1]) < 3:
+                if abs(SystemConstants.DOOR_LOCATION_X - person_pos[0]) < 1 and abs(
+                        SystemConstants.DOOR_LOCATION_Y - person_pos[1]) < 1:
+                    door_index_list.append(person_num)
+        return door_index_list
+
     # 比较在缓存中是否存在该位置的人
     def modify_person_pos_dict(self, new_cluster_person_point):
         person_pos_dict = SystemMemory.get_value("person_pos_dict")
@@ -248,14 +302,24 @@ class DealPackage:
         if person_pos_dict:
             if self.update_person_location(new_cluster_person_point, person_pos_dict):
                 # 没有人，人从其他地方出现，添加人
-                print("没有人，人从其他地方出现，添加人")
+                # print("没有人，人从其他地方出现，添加人")
                 person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
             # 门附近 出现人，进入，添加人
+            near_door_list = self.get_door_person_index()
             if self.person_in_door(new_cluster_person_point) == 1:
-                print("门附近 出现人，进入，添加人")
-                person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+                if len(near_door_list) == 0:
+                    # print("进入， 门附近 无人，添加人")
+                    person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
+                else:
+                    pass
+                    # print("进入， 门附近 有人，不添加人")
             elif self.person_in_door(new_cluster_person_point) == 2:
-                print("门附近 出现人，出门 ，减少人")
+                if len(near_door_list) == 0:
+                    for near_door_index in near_door_list:
+                        person_pos_dict.pop(near_door_index)
+                    print("有人出去，清除门附近人")
+                else:
+                    print("不处理出去信息！")
                 # person_pos_dict.pop(person_num)
         else:
             # 添加一个人
@@ -268,6 +332,7 @@ class DealPackage:
         sqrt_diff_list_x = []
         sqrt_diff_list_y = []
         sqrt_diff_list_all = []
+        # print("处理新出现的聚点信息 ： " + str(new_cluster_person_point))
         for person_num, person_pos in person_pos_dict.items():
             sqrt_diff_list_x.append(abs(new_cluster_person_point[0] - person_pos[0]))
             sqrt_diff_list_y.append(abs(new_cluster_person_point[1] - person_pos[1]))
@@ -277,8 +342,8 @@ class DealPackage:
         min_index = sqrt_diff_list_all.index(min(sqrt_diff_list_all))
         if sqrt_diff_list_all[min_index] < 4:
             if sqrt_diff_list_x[min_index] < 1 and sqrt_diff_list_y[min_index] < 1:
-                print("更新人的位置" + str(new_cluster_person_point))
                 person_pos_dict[min_index] = new_cluster_person_point
+                # print("更新人的信息 ： " + str(new_cluster_person_point))
                 return False
             else:
                 return False
@@ -292,7 +357,7 @@ class DealPackage:
         # 到门附近，开始判断是进入还是出去
         if abs(new_cluster_person_point[0] - SystemConstants.DOOR_LOCATION_X) < 1 and abs(
                 new_cluster_person_point[1] - SystemConstants.DOOR_LOCATION_Y) < 1:
-            print("处理门附近的聚点信息 " + str(new_cluster_person_point))
+            # print("处理门附近的聚点信息 " + str(new_cluster_person_point))
             # 设置旧的坐标
             SystemMemory.set_value("old_door_cluseter_person_point", new_cluster_person_point)
             if old_door_cluseter_person_point:
@@ -300,11 +365,11 @@ class DealPackage:
                 if abs(old_door_cluseter_person_point[0] - new_cluster_person_point[0]) < 0.2:
                     return 0
                 elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] > 0.2:
-                    print("----------进入进入进入---------------进入----进入------------------------")
+                    # print("----------进入进入进入---------------进入----进入------------------------")
                     return 1
                 # 如果坐标增大，是出去
                 elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] < -0.2:
-                    print("-------------------出去-出去-出去-------出去--------------出去-出去-出去----------")
+                    # print("-------------------出去-出去-出去-------出去--------------出去-出去-出去----------")
                     return 2
             else:
                 # 没有前一个坐标，判断也是进入

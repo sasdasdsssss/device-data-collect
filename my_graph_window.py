@@ -239,26 +239,31 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for device_value in SystemMemory.get_value("device_list"):
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             ip_value = device_value.split(",")[1]
-            cur_udp_address = (ip_value, 80)
+            radar_device_udp_address = (ip_value, 80)
             # 绑定本地端口 避免重启问题
             local_ip = FindDevice(self).get_local_ip()
             client_udp_address = (local_ip, SystemConstants.SERVER_ADDRESS_LOCALHOST_PORT + int(ip_value.split(".")[3]))
             logger.info("绑定udp客户端 ： {}", client_udp_address)
             mySocket.bind(client_udp_address)
             # 需要发送出发数据
-            mySocket.sendto(SystemConstants.WIFI_START_SEND_CONTENT.encode(), cur_udp_address)
-            socket_dict[cur_udp_address] = mySocket
-            logger.info("发送触发数据：{}", cur_udp_address)
+            mySocket.sendto(SystemConstants.WIFI_START_SEND_CONTENT.encode(), radar_device_udp_address)
+            socket_dict[radar_device_udp_address] = mySocket
+            logger.info("发送触发数据：{}", radar_device_udp_address)
             if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.LOCATION_RADAR_TYPE:
                 wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_location_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
-                logger.info("接收wifi位置数据线程启动！")
-            if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.PARAMETER_RADAR_TYPE:
+                logger.info("接收wifi位置数据线程启动！对应设备{}", ip_value)
+            elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.PARAMETER_RADAR_TYPE:
                 wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_parameter_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
-                logger.info("接收wifi心率呼吸数据线程启动！")
+                logger.info("接收wifi心率呼吸数据线程启动！对应设备{}", ip_value)
+            elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.POSTURE_RADAR_TYPE:
+                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_posture_wifi_package)
+                wifi_receive_thread.setDaemon(True)
+                wifi_receive_thread.start()
+                logger.info("接收wifi姿态数据线程启动！对应设备{}", ip_value)
         SystemMemory.set_value("socket_dict", socket_dict)
         self.btn_open_wifi.setEnabled(False)
 
