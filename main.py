@@ -11,6 +11,7 @@ from my_graph_window import MyGraphWindow
 from PySide6 import QtCore
 from config import system_memory as SystemMemory
 from grab.find_device import FindDevice
+from process.clear_data_thread import ClearDataThread
 
 if __name__ == '__main__':
     # 初始化缓存
@@ -24,6 +25,12 @@ if __name__ == '__main__':
     find_device_thread.setDaemon(True)
     find_device_thread.start()
     logger.info("设备发现线程启动！")
+
+    # 启动数据清除线程
+    clear_person_location_thread = threading.Thread(target=ClearDataThread().clear_person_location_data)
+    clear_person_location_thread.setDaemon(True)
+    clear_person_location_thread.start()
+    logger.info("位置数据清除线程线程启动！")
 
     timer_draw_line = QtCore.QTimer()
     timer_draw_line.timeout.connect(myWin.picture_draw_timer)

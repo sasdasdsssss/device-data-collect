@@ -47,12 +47,12 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.curve2, self.curve22, self.pos, self.pos1, self.series, self.Q3D = self.set_graph_ui()  # 设置绘图窗口
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
             self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
-            self.ACTION_TYPE_DISPLAY = self.init_data()
+            self.ACTION_TYPE_DISPLAY, self.ACTION_TYPE_DISPLAY2 = self.init_data()
         self.btn1.clicked.connect(self.open_network_card)  # 打开网卡
         self.btn_open_wifi.clicked.connect(self.open_wifi_receive)  # 打开wifi接收
         self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
         self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
-        self.btn_start_send.clicked.connect(self.start_send_thread)  # 保存服务端数据
+        self.btn_start_send.clicked.connect(self.start_send_thread)  # 发送数据
 
         self.btn_save_server.setEnabled(True)
 
@@ -71,7 +71,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         GES_x[0] = 0.5
         GES_y[0] = 0.5
         ACTION_TYPE_DISPLAY = 0
-        return T1_phaseBreath, T1_phaseHeart, T1_amp, T1_wave, ST_x, ST_y, TNUM, GES_x, GES_y, ACTION_TYPE_DISPLAY
+        ACTION_TYPE_DISPLAY2 = 0
+        return T1_phaseBreath, T1_phaseHeart, T1_amp, T1_wave, ST_x, ST_y, TNUM, GES_x, GES_y, ACTION_TYPE_DISPLAY, ACTION_TYPE_DISPLAY2
 
     def set_graph_ui(self):
         pg.setConfigOptions(antialias=True)  # pg全局变量设置函数，antialias=True开启曲线抗锯齿
@@ -185,7 +186,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def wired_receive_thread(self):
         # 有线设备线程
         net_card = self.comboBox.currentText()
-        dealPackage = DealPackage(self, None)
+        dealPackage = DealPackage(self, None, None)
         WinPcapUtils.capture_on(pattern=net_card, callback=dealPackage.wired_packet_callback)
 
     def picture_draw_timer(self):
@@ -194,8 +195,9 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.curve2.setData(self.T1_amp)
         self.curve22.setData(self.T1_phaseHeart)
         # print(self.ACTION_TYPE_DISPLAY)
-        if self.TNUM >= 1:
-            pass
+        # if self.TNUM >= 1:
+        #     pass
+
         if self.ACTION_TYPE_DISPLAY == SystemConstants.NO_PEOPLE:
             self.label_T2_4.setText("无人.")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.WALKING:
@@ -208,6 +210,19 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.label_T2_4.setText("跌倒！")
         if self.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
             self.label_T2_4.setText("躺下.")
+
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.NO_PEOPLE:
+            self.label_T2_5.setText("无人.")
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.WALKING:
+            self.label_T2_5.setText("走动.")
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.STANDING:
+            self.label_T2_5.setText("站立.")
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.SIT_DOWN:
+            self.label_T2_5.setText("坐下.")
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.FALL_DOWN:
+            self.label_T2_5.setText("跌倒！")
+        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.LIE_DOWN:
+            self.label_T2_5.setText("躺下.")
 
         data = []
         data_val = 0
@@ -250,17 +265,20 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             socket_dict[radar_device_udp_address] = mySocket
             logger.info("发送触发数据：{}", radar_device_udp_address)
             if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.LOCATION_RADAR_TYPE:
-                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_location_wifi_package)
+                wifi_receive_thread = threading.Thread(
+                    target=DealPackage(self, mySocket, ip_value).deal_location_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi位置数据线程启动！对应设备{}", ip_value)
             elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.PARAMETER_RADAR_TYPE:
-                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_parameter_wifi_package)
+                wifi_receive_thread = threading.Thread(
+                    target=DealPackage(self, mySocket, ip_value).deal_parameter_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi心率呼吸数据线程启动！对应设备{}", ip_value)
             elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.POSTURE_RADAR_TYPE:
-                wifi_receive_thread = threading.Thread(target=DealPackage(self, mySocket).deal_posture_wifi_package)
+                wifi_receive_thread = threading.Thread(
+                    target=DealPackage(self, mySocket, ip_value).deal_posture_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi姿态数据线程启动！对应设备{}", ip_value)
@@ -276,6 +294,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info("保存服务端信息成功！")
 
     def add_content_to_text_edit_logging(self, add_text):
+        if len(self.plainTextEdit_send.toPlainText()) > 3000:
+            self.plainTextEdit_send.setPlainText("")
         self.plainTextEdit_send.setPlainText(self.plainTextEdit_send.toPlainText() +
                                              datetime.now().strftime('%Y-%m-%d %H:%M:%S') + add_text + "\n")
         self.plainTextEdit_send.moveCursor(qg.QTextCursor.End)
@@ -289,11 +309,16 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def start_send_thread(self):
         # 启动 发送到socket 线程
-        socket_client_thread = threading.Thread(target=SocketClient.send_content)
+        socket_client_thread = threading.Thread(target=SocketClient.send_breathe_heart_content)
         socket_client_thread.setDaemon(True)
         socket_client_thread.start()
-        logger.info("发送数据线程启动！")
-        self.btn_start_send.setEnabled(False)
+        logger.info("发送心率呼吸数据线程启动！")
+
+        # socket_client_thread = threading.Thread(target=SocketClient.send_location_content)
+        # socket_client_thread.setDaemon(True)
+        # socket_client_thread.start()
+        # logger.info("发送位置数据线程启动！")
+        # self.btn_start_send.setEnabled(False)
 
     def closeEvent(self, event):
         socket_dict = SystemMemory.get_value("socket_dict")

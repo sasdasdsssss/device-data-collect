@@ -13,9 +13,10 @@ from sklearn.cluster import DBSCAN
 # 处理数据类
 class DealPackage:
 
-    def __init__(self, myWin, mySocket):
+    def __init__(self, myWin, mySocket, ip_value):
         self.myWin = myWin
         self.mySocket = mySocket
+        self.ip_value = ip_value
         self.count = 0
         self.start = 0
         self.FrameNum = 16
@@ -120,8 +121,25 @@ class DealPackage:
                 for i in range(4096):
                     self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
 
-                self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
-                SystemMemory.set_value("petient_posture", self.myWin.ACTION_TYPE_DISPLAY)
+                if self.ip_value == "192.168.101.42":
+                    g_OutNum = int(self.data2[3000])
+                    self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
+                    if g_OutNum == 0:
+                        self.myWin.ACTION_TYPE_DISPLAY = 0
+                    # print("petient_posture" + self.ip_value)
+                    # if self.myWin.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
+                    #     self.myWin.ACTION_TYPE_DISPLAY = SystemConstants.FALL_DOWN
+                    SystemMemory.set_value("petient_posture" + self.ip_value, self.myWin.ACTION_TYPE_DISPLAY)
+                elif self.ip_value == "192.168.101.43":
+                    g_OutNum = int(self.data2[3000])
+                    self.myWin.ACTION_TYPE_DISPLAY2 = int(self.data2[3001])
+                    if g_OutNum == 0:
+                        self.myWin.ACTION_TYPE_DISPLAY2 = 0
+                    if self.myWin.ACTION_TYPE_DISPLAY2 == SystemConstants.LIE_DOWN:
+                        self.myWin.ACTION_TYPE_DISPLAY2 = SystemConstants.FALL_DOWN
+                    # print("petient_posture" + self.ip_value)
+                    SystemMemory.set_value("petient_posture" + self.ip_value, self.myWin.ACTION_TYPE_DISPLAY2)
+
 
     def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:
@@ -213,7 +231,7 @@ class DealPackage:
                 A = np.array(self.data2[3:self.TargetNum * 5:5])
                 E = np.array(self.data2[4:self.TargetNum * 5:5])
                 P_cal = np.pi * P / 180.0
-                E_cal = np.pi * E / 180.0
+                E_cal = np.pi * (E - 30) / 180.0
                 R_cal = R * np.cos(E_cal)
                 H_cal = R * np.sin(E_cal)
                 R_dis = R_cal * np.cos(P_cal)
@@ -231,7 +249,7 @@ class DealPackage:
                     cnt = cnt + 1
                 # 半秒处理一次
                 self.data_counts = self.data_counts + 1
-                if self.data_counts >= 10:
+                if self.data_counts >= 20:
                     R_real = np.zeros(self.TargetNum)
                     L_real = np.zeros(self.TargetNum)
                     H_real = np.zeros(self.TargetNum)
@@ -317,13 +335,14 @@ class DealPackage:
                 if len(near_door_list) == 0:
                     for near_door_index in near_door_list:
                         person_pos_dict.pop(near_door_index)
-                    print("有人出去，清除门附近人")
+                    # print("有人出去，清除门附近人")
                 else:
-                    print("不处理出去信息！")
+                    # print("不处理出去信息！")
+                    pass
                 # person_pos_dict.pop(person_num)
         else:
             # 添加一个人
-            print("没有记录，添加人")
+            # print("没有记录，添加人")
             person_pos_dict = {0: new_cluster_person_point}
         SystemMemory.set_value("person_pos_dict", person_pos_dict)
         self.myWin.modify_person_location_list(person_pos_dict)
@@ -341,9 +360,9 @@ class DealPackage:
                                                                person_pos[1]))
         min_index = sqrt_diff_list_all.index(min(sqrt_diff_list_all))
         if sqrt_diff_list_all[min_index] < 4:
-            if sqrt_diff_list_x[min_index] < 1 and sqrt_diff_list_y[min_index] < 1:
+            if sqrt_diff_list_x[min_index] < 1.5 and sqrt_diff_list_y[min_index] < 1.5:
                 person_pos_dict[min_index] = new_cluster_person_point
-                # print("更新人的信息 ： " + str(new_cluster_person_point))
+                print("更新人的信息 ： " + str(new_cluster_person_point))
                 return False
             else:
                 return False
