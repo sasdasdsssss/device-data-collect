@@ -1,0 +1,55 @@
+﻿other:
+  # 软件版本
+  version: 1.0
+  serverAddressLocalhostPort: 13010
+  # 门位置横坐标
+  doorLocationX: 6.5
+  # 门位置纵坐标
+  doorLocationY: -2.4
+  # 1 v1版本，包含姿态和心率呼吸
+  postureRadarType: 1
+  # 2 v2版本，包含心率呼吸
+  parameterRadarType: 2
+  # 3 v3版本，位置信息
+  locationRadarType: 3
+  # wifi 设备地址和类型对应关系
+  wifiAddressType:
+    "192.168.101.39": 3
+    "192.168.101.42": 1
+    "192.168.101.43": 1
+   # wifi 姿态对应关系
+  personPosture:
+    0: "无人"
+    1: "走动"
+    2: "站立"
+    3: "坐下"
+    4: "跌倒"
+    5: "躺下"
+  # 人位置 坐标范围
+  personLocationScope:
+    xMin: 1
+    xMax: 7.4
+    yMin: -4
+    yMax: 3
+  #  人位置远近判断
+  personDistance:
+    maxDistance: 4
+    maxX: 1.5
+    maxY: 1.5
+
+  # 门附近 范围
+  doorLocationScope:
+    xMin: 1
+    yMin: 1
+
+  # 判断人进入，出去范围
+  doorInOutScope:
+    in: 0.2
+    out: -0.2
+  # 心率呼吸处理数量
+  parameterDealCount: 20
+  # 姿态处理数量
+  postureDealCount: 10
+
+
+

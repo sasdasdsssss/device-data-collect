@@ -7,6 +7,7 @@ import pyqtgraph as pg
 from PySide6.QtCore import Qt
 
 from client.socket_client import SocketClient
+from config.global_config import global_config
 from ui.ui_main_window import Ui_MainWindow
 from winpcapy import WinPcapDevices
 from winpcapy import WinPcapUtils
@@ -47,7 +48,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.curve2, self.curve22, self.pos, self.pos1, self.series, self.Q3D = self.set_graph_ui()  # 设置绘图窗口
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
             self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
-            self.ACTION_TYPE_DISPLAY, self.ACTION_TYPE_DISPLAY2 = self.init_data()
+            self.radar_posture_dict = self.init_data()
         self.btn1.clicked.connect(self.open_network_card)  # 打开网卡
         self.btn_open_wifi.clicked.connect(self.open_wifi_receive)  # 打开wifi接收
         self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
@@ -70,9 +71,9 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         GES_y = np.zeros(1)
         GES_x[0] = 0.5
         GES_y[0] = 0.5
-        ACTION_TYPE_DISPLAY = 0
-        ACTION_TYPE_DISPLAY2 = 0
-        return T1_phaseBreath, T1_phaseHeart, T1_amp, T1_wave, ST_x, ST_y, TNUM, GES_x, GES_y, ACTION_TYPE_DISPLAY, ACTION_TYPE_DISPLAY2
+        radar_posture_dict = {}
+
+        return T1_phaseBreath, T1_phaseHeart, T1_amp, T1_wave, ST_x, ST_y, TNUM, GES_x, GES_y, radar_posture_dict
 
     def set_graph_ui(self):
         pg.setConfigOptions(antialias=True)  # pg全局变量设置函数，antialias=True开启曲线抗锯齿
@@ -194,49 +195,19 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.curve11.setData(self.T1_wave)
         self.curve2.setData(self.T1_amp)
         self.curve22.setData(self.T1_phaseHeart)
-        # print(self.ACTION_TYPE_DISPLAY)
-        # if self.TNUM >= 1:
-        #     pass
-
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.NO_PEOPLE:
-            self.label_T2_4.setText("无人.")
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.WALKING:
-            self.label_T2_4.setText("走动.")
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.STANDING:
-            self.label_T2_4.setText("站立.")
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.SIT_DOWN:
-            self.label_T2_4.setText("坐下.")
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.FALL_DOWN:
-            self.label_T2_4.setText("跌倒！")
-        if self.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
-            self.label_T2_4.setText("躺下.")
-
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.NO_PEOPLE:
-            self.label_T2_5.setText("无人.")
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.WALKING:
-            self.label_T2_5.setText("走动.")
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.STANDING:
-            self.label_T2_5.setText("站立.")
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.SIT_DOWN:
-            self.label_T2_5.setText("坐下.")
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.FALL_DOWN:
-            self.label_T2_5.setText("跌倒！")
-        if self.ACTION_TYPE_DISPLAY2 == SystemConstants.LIE_DOWN:
-            self.label_T2_5.setText("躺下.")
-
+        # 测试 姿态内容
+        self.radar_posture_dict = {"192.168.101.42": 0, "192.168.101.43": 4}
+        posture_count = 0
+        self.listWidget_posture.clear()
+        # 调整姿态
+        for ip_value, posture_value in self.radar_posture_dict.items():
+            self.listWidget_posture.addItem(str(posture_count) + ":" + global_config.personPosture[posture_value])
+            posture_count += 1
         data = []
-        data_val = 0
-
-        # self.ST_x = np.zeros(512)
-        # self.ST_y = np.zeros(512)
 
         for i in range(512):
             if self.pos[i, 0] > 0:
                 data.append(QScatterDataItem(QVector3D(self.pos[i, 1], self.pos[i, 2], self.pos[i, 0])))
-
-        # for i in range(512):
-        #     if self.pos[i, 0] > 0:
-        #         data.append(QScatterDataItem(QVector3D(self.pos[i, 1], -1.5, self.pos[i, 0])))
 
         self.series.dataProxy().resetArray(data)
 
@@ -257,26 +228,26 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             radar_device_udp_address = (ip_value, 80)
             # 绑定本地端口 避免重启问题
             local_ip = FindDevice(self).get_local_ip()
-            client_udp_address = (local_ip, SystemConstants.SERVER_ADDRESS_LOCALHOST_PORT + int(ip_value.split(".")[3]))
+            client_udp_address = (local_ip, global_config.serverAddressLocalhostPort + int(ip_value.split(".")[3]))
             logger.info("绑定udp客户端 ： {}", client_udp_address)
             mySocket.bind(client_udp_address)
             # 需要发送出发数据
             mySocket.sendto(SystemConstants.WIFI_START_SEND_CONTENT.encode(), radar_device_udp_address)
             socket_dict[radar_device_udp_address] = mySocket
             logger.info("发送触发数据：{}", radar_device_udp_address)
-            if SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.LOCATION_RADAR_TYPE:
+            if global_config.wifiAddressType[ip_value] == global_config.locationRadarType:
                 wifi_receive_thread = threading.Thread(
                     target=DealPackage(self, mySocket, ip_value).deal_location_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi位置数据线程启动！对应设备{}", ip_value)
-            elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.PARAMETER_RADAR_TYPE:
+            elif global_config.wifiAddressType[ip_value] == global_config.parameterRadarType:
                 wifi_receive_thread = threading.Thread(
                     target=DealPackage(self, mySocket, ip_value).deal_parameter_wifi_package)
                 wifi_receive_thread.setDaemon(True)
                 wifi_receive_thread.start()
                 logger.info("接收wifi心率呼吸数据线程启动！对应设备{}", ip_value)
-            elif SystemConstants.WIFI_ADDRESS_TYPE[ip_value] == SystemConstants.POSTURE_RADAR_TYPE:
+            elif global_config.wifiAddressType[ip_value] == global_config.postureRadarType:
                 wifi_receive_thread = threading.Thread(
                     target=DealPackage(self, mySocket, ip_value).deal_posture_wifi_package)
                 wifi_receive_thread.setDaemon(True)
@@ -300,25 +271,15 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                              datetime.now().strftime('%Y-%m-%d %H:%M:%S') + add_text + "\n")
         self.plainTextEdit_send.moveCursor(qg.QTextCursor.End)
 
-    def set_socket_logger(self):
-        if SystemMemory.get_value("logging"):
-            self.add_content_to_text_edit_logging(SystemMemory.get_value("logging"))
-
     def clear_log_text(self):
         self.plainTextEdit_send.setPlainText("")
 
     def start_send_thread(self):
         # 启动 发送到socket 线程
-        socket_client_thread = threading.Thread(target=SocketClient.send_breathe_heart_content)
+        socket_client_thread = threading.Thread(target=SocketClient(self).send_radar_content)
         socket_client_thread.setDaemon(True)
         socket_client_thread.start()
         logger.info("发送心率呼吸数据线程启动！")
-
-        # socket_client_thread = threading.Thread(target=SocketClient.send_location_content)
-        # socket_client_thread.setDaemon(True)
-        # socket_client_thread.start()
-        # logger.info("发送位置数据线程启动！")
-        # self.btn_start_send.setEnabled(False)
 
     def closeEvent(self, event):
         socket_dict = SystemMemory.get_value("socket_dict")

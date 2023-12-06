@@ -9,6 +9,10 @@ from config.system_constant import SystemConstants
 
 from sklearn.cluster import DBSCAN
 
+from config.global_config import global_config
+
+from collections import Counter
+
 
 # 处理数据类
 class DealPackage:
@@ -31,6 +35,8 @@ class DealPackage:
         self.heart_data_list = []
         self.person_staus = []
         self.MODE = 0
+        self.posture_count = 0
+        self.posture_list = []
 
     def wired_packet_callback(self, win_pcap, param, header, pkt_data):
         packet = list(pkt_data)
@@ -120,26 +126,28 @@ class DealPackage:
 
                 for i in range(4096):
                     self.data2[i] = bytesToFloat(FrameData3[i], FrameData4[i], FrameData1[i], FrameData2[i])
-
-                if self.ip_value == "192.168.101.42":
+                    # R = np.array(self.data2[0:self.TargetNum * 5:5])
+                    # V = np.array(self.data2[1:self.TargetNum * 5:5])
+                    # A = np.array(self.data2[3:self.TargetNum * 5:5])
+                # 数量小于时，先收集所有姿态
+                if self.posture_count < global_config.postureDealCount:
+                    self.posture_count += 1
+                    person_posture = int(self.data2[3001])
                     g_OutNum = int(self.data2[3000])
-                    self.myWin.ACTION_TYPE_DISPLAY = int(self.data2[3001])
                     if g_OutNum == 0:
-                        self.myWin.ACTION_TYPE_DISPLAY = 0
-                    # print("petient_posture" + self.ip_value)
-                    # if self.myWin.ACTION_TYPE_DISPLAY == SystemConstants.LIE_DOWN:
-                    #     self.myWin.ACTION_TYPE_DISPLAY = SystemConstants.FALL_DOWN
-                    SystemMemory.set_value("petient_posture" + self.ip_value, self.myWin.ACTION_TYPE_DISPLAY)
-                elif self.ip_value == "192.168.101.43":
-                    g_OutNum = int(self.data2[3000])
-                    self.myWin.ACTION_TYPE_DISPLAY2 = int(self.data2[3001])
-                    if g_OutNum == 0:
-                        self.myWin.ACTION_TYPE_DISPLAY2 = 0
-                    if self.myWin.ACTION_TYPE_DISPLAY2 == SystemConstants.LIE_DOWN:
-                        self.myWin.ACTION_TYPE_DISPLAY2 = SystemConstants.FALL_DOWN
-                    # print("petient_posture" + self.ip_value)
-                    SystemMemory.set_value("petient_posture" + self.ip_value, self.myWin.ACTION_TYPE_DISPLAY2)
-
+                        person_posture = 0
+                    self.posture_list.append(person_posture)
+                    # 更新界面上的姿态值
+                    self.myWin.radar_posture_dict[self.ip_value] = person_posture
+                # 数量达到10时，将对应姿态中最多的姿态，存入缓存，准备发送到后台
+                else:
+                    most_common_item = 0
+                    if self.posture_list:
+                        # 获取list 中，最多的值
+                        most_common_item = max(set(self.posture_list), key=self.posture_list.count)
+                    SystemMemory.set_value("petient_posture" + self.ip_value, most_common_item)
+                    self.posture_count = 0
+                    self.posture_list = []
 
     def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:
@@ -181,7 +189,7 @@ class DealPackage:
                     self.data_counts = self.data_counts + 1
                     self.breathe_data_list.append(T1_Breath_val)
                     self.heart_data_list.append(T1_Heart_val)
-                    if self.data_counts >= 10:
+                    if self.data_counts >= global_config.parameterDealCount:
                         self.breathe_data_list.remove(max(self.breathe_data_list))
                         self.breathe_data_list.remove(min(self.breathe_data_list))
                         breath_average = sum(self.breathe_data_list) / len(self.breathe_data_list)
@@ -249,7 +257,7 @@ class DealPackage:
                     cnt = cnt + 1
                 # 半秒处理一次
                 self.data_counts = self.data_counts + 1
-                if self.data_counts >= 20:
+                if self.data_counts >= 40:
                     R_real = np.zeros(self.TargetNum)
                     L_real = np.zeros(self.TargetNum)
                     H_real = np.zeros(self.TargetNum)
@@ -302,20 +310,22 @@ class DealPackage:
         person_pos_dict = SystemMemory.get_value("person_pos_dict")
         door_index_list = []
         for person_num, person_pos in person_pos_dict.items():
-            if self.calculate_sqrt_diff(SystemConstants.DOOR_LOCATION_X, person_pos[0],
-                                        SystemConstants.DOOR_LOCATION_Y,
+            if self.calculate_sqrt_diff(global_config.doorLocationX, person_pos[0],
+                                        global_config.doorLocationY,
                                         person_pos[1]) < 3:
-                if abs(SystemConstants.DOOR_LOCATION_X - person_pos[0]) < 1 and abs(
-                        SystemConstants.DOOR_LOCATION_Y - person_pos[1]) < 1:
+                if abs(global_config.doorLocationX - person_pos[0]) < 1 and abs(
+                        global_config.doorLocationY - person_pos[1]) < 1:
                     door_index_list.append(person_num)
         return door_index_list
 
     # 比较在缓存中是否存在该位置的人
     def modify_person_pos_dict(self, new_cluster_person_point):
         person_pos_dict = SystemMemory.get_value("person_pos_dict")
-        if new_cluster_person_point[0] > 7.4 or new_cluster_person_point[0] < 1:
+        if new_cluster_person_point[0] > global_config.personLocationScope["xMax"] or new_cluster_person_point[0] < \
+                global_config.personLocationScope["xMin"]:
             return
-        if new_cluster_person_point[1] > 3.0 or new_cluster_person_point[1] < -4:
+        if new_cluster_person_point[1] > global_config.personLocationScope["yMax"] or new_cluster_person_point[1] < \
+                global_config.personLocationScope["yMin"]:
             return
         if person_pos_dict:
             if self.update_person_location(new_cluster_person_point, person_pos_dict):
@@ -359,8 +369,9 @@ class DealPackage:
                                                                new_cluster_person_point[1],
                                                                person_pos[1]))
         min_index = sqrt_diff_list_all.index(min(sqrt_diff_list_all))
-        if sqrt_diff_list_all[min_index] < 4:
-            if sqrt_diff_list_x[min_index] < 1.5 and sqrt_diff_list_y[min_index] < 1.5:
+        if sqrt_diff_list_all[min_index] < global_config.personDistance["maxDistance"]:
+            if (sqrt_diff_list_x[min_index] < global_config.personDistance["maxX"]
+                    and sqrt_diff_list_y[min_index] < global_config.personDistance["maxY"]):
                 person_pos_dict[min_index] = new_cluster_person_point
                 print("更新人的信息 ： " + str(new_cluster_person_point))
                 return False
@@ -374,22 +385,25 @@ class DealPackage:
     def person_in_door(new_cluster_person_point):
         old_door_cluseter_person_point = SystemMemory.get_value("old_door_cluseter_person_point")
         # 到门附近，开始判断是进入还是出去
-        if abs(new_cluster_person_point[0] - SystemConstants.DOOR_LOCATION_X) < 1 and abs(
-                new_cluster_person_point[1] - SystemConstants.DOOR_LOCATION_Y) < 1:
+        if (abs(new_cluster_person_point[0] - global_config.doorLocationX) < global_config.doorLocationScope["xMin"]
+                and abs(new_cluster_person_point[1] - global_config.doorLocationY)
+                < global_config.doorLocationScope["yMin"]):
             # print("处理门附近的聚点信息 " + str(new_cluster_person_point))
             # 设置旧的坐标
             SystemMemory.set_value("old_door_cluseter_person_point", new_cluster_person_point)
             if old_door_cluseter_person_point:
                 # 如果坐标减小，是进入
-                if abs(old_door_cluseter_person_point[0] - new_cluster_person_point[0]) < 0.2:
-                    return 0
-                elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] > 0.2:
+                if (old_door_cluseter_person_point[0] - new_cluster_person_point[0]
+                        > global_config.doorInOutScope["in"]):
                     # print("----------进入进入进入---------------进入----进入------------------------")
                     return 1
                 # 如果坐标增大，是出去
-                elif old_door_cluseter_person_point[0] - new_cluster_person_point[0] < -0.2:
+                elif (old_door_cluseter_person_point[0] - new_cluster_person_point[0]
+                      < global_config.doorInOutScope["out"]):
                     # print("-------------------出去-出去-出去-------出去--------------出去-出去-出去----------")
                     return 2
+                else:
+                    return 0
             else:
                 # 没有前一个坐标，判断也是进入
                 return 0

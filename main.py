@@ -13,12 +13,18 @@ from config import system_memory as SystemMemory
 from grab.find_device import FindDevice
 from process.clear_data_thread import ClearDataThread
 
+from config.global_config import global_config
+
 if __name__ == '__main__':
     # 初始化缓存
     SystemMemory.initialize()
+    logger.info("缓存初始化成功!")
 
     app = QtWidgets.QApplication(sys.argv)
     myWin = MyGraphWindow()
+
+    logger.info("版本：" + str(global_config.version))
+    logger.info("姿态：" + str(global_config.personPosture))
 
     # 启动设备发现线程
     find_device_thread = threading.Thread(target=FindDevice(myWin).run_find_device)
@@ -38,11 +44,7 @@ if __name__ == '__main__':
 
     time.sleep(1)
 
-    timer_set_logging = QtCore.QTimer()
-    timer_set_logging.timeout.connect(myWin.set_socket_logger)
-    timer_set_logging.start(1000)
-
-    # myWin.setStyleSheet("background-color: rgb(181, 181, 181)")
+    # myWin.setStyleSheet("background-color: rgb(231, 231, 231)")
 
     myWin.show()
     sys.exit(app.exec())
