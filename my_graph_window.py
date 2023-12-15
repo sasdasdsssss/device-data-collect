@@ -279,7 +279,8 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         socket_client_thread = threading.Thread(target=SocketClient(self).send_radar_content)
         socket_client_thread.setDaemon(True)
         socket_client_thread.start()
-        logger.info("发送心率呼吸数据线程启动！")
+        logger.info("发送雷达数据线程启动！")
+        self.btn_start_send.setEnabled(False)
 
     def closeEvent(self, event):
         socket_dict = SystemMemory.get_value("socket_dict")

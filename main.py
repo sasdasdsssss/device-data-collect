@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     timer_draw_line = QtCore.QTimer()
     timer_draw_line.timeout.connect(myWin.picture_draw_timer)
-    timer_draw_line.start(50)
+    timer_draw_line.start(1000)
 
     time.sleep(1)
 
