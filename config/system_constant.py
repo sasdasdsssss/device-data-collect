@@ -42,3 +42,5 @@ SystemConstants.WIFI_END_SEND_CONTENT = "exit"
 SystemConstants.WIRED_NETWORK_TYPE = 1
 # 无线网络类型
 SystemConstants.WIFI_NETWORK_TYPE = 2
+# 综合探头类型
+SystemConstants.CIRCLE_NETWORK_TYPE = 3

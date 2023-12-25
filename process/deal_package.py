@@ -46,6 +46,7 @@ class DealPackage:
                 and packet[9] == 0xC2 and packet[10] == 0x7D and packet[11] == 0xF8 \
                 and header.contents.caplen == 1040:
             self.count = self.count + 1
+            # print(packet)
             self.deal_parameter_package(packet, SystemConstants.WIRED_NETWORK_TYPE)
 
     def deal_location_wifi_package(self):
@@ -102,6 +103,36 @@ class DealPackage:
                 self.count = self.count + 1
                 self.deal_parameter_package(packet, SystemConstants.WIFI_NETWORK_TYPE)
 
+    # 处理综合探头参数类型数据
+    def deal_parameter_circle_package(self):
+        while True:
+            packet_in, addr = self.mySocket.recvfrom(1040)
+            if len(packet_in) == 1040:
+                packet = list(packet_in)
+                # print(packet)
+                if packet[0] == 0xFF and packet[1] == 0xFF and packet[2] == 0xFF \
+                        and packet[3] == 0xFF and packet[4] == 0xFF and packet[5] == 0xFF \
+                        and packet[6] == 0x48 and packet[7] == 0x5B and packet[8] == 0x39 \
+                        and packet[9] == 0xC2 and packet[10] == 0x7D and packet[11] == 0xF8:
+                    self.count = self.count + 1
+                    self.deal_parameter_package(packet, SystemConstants.CIRCLE_NETWORK_TYPE)
+            # if len(packet_in) == 1040:
+            #     result_recv_data = packet_in.hex()
+            #     # print(result_recv_data)
+            #     ls = []
+            #     result_length = len(result_recv_data) // 2
+            #     for i in range(result_length):
+            #         tmp = result_recv_data[i * 2] + result_recv_data[i * 2 + 1]
+            #         tmp_int = int(tmp, 16)
+            #         ls.append(tmp_int)
+            #     packet = ls
+            #     # print(packet)
+            #
+            #     self.FrameNum = 16
+            #     self.TargetNum = 512
+            #     self.count = self.count + 1
+            #     self.deal_parameter_package(packet, SystemConstants.CIRCLE_NETWORK_TYPE)
+
     def deal_posture_package(self, packet):
         self.FrameNum = 16
         self.TargetNum = 512
@@ -157,9 +188,11 @@ class DealPackage:
         if self.start == 1:
             tmp = packet[16:1040]
             self.data[self.count, 0:1024] = tmp
+            # print(str(self.count) + "  " + str(self.FrameNum))
             if self.count == (self.FrameNum - 1):
                 self.start = 0
                 rxFramedata = np.squeeze(self.data.reshape(-1, 16 * 1024))
+                # print(list(rxFramedata))
 
                 Framedata1 = rxFramedata[0:self.FrameNum * 1024:4]
                 Framedata2 = rxFramedata[1:self.FrameNum * 1024:4]
@@ -173,6 +206,11 @@ class DealPackage:
                     elif network_type == SystemConstants.WIFI_NETWORK_TYPE:
                         self.data2[i] = bytesToFloat(Framedata3[i], Framedata4[i], Framedata1[i],
                                                      Framedata2[i])
+                    elif network_type == SystemConstants.CIRCLE_NETWORK_TYPE:
+                        self.data2[i] = bytesToFloat(Framedata3[i], Framedata4[i], Framedata1[i],
+                                                     Framedata2[i])
+                        # self.data2[i] = bytesToFloat(Framedata2[i], Framedata3[i], Framedata4[i],
+                        #                              Framedata1[i])
                 # 0 时，处理呼吸数据
                 if self.MODE == 0:
                     self.myWin.T1_phaseBreath = self.data2[1600:1600 + 256]
@@ -189,6 +227,7 @@ class DealPackage:
                     self.data_counts = self.data_counts + 1
                     self.breathe_data_list.append(T1_Breath_val)
                     self.heart_data_list.append(T1_Heart_val)
+
                     if self.data_counts >= global_config.parameterDealCount:
                         self.breathe_data_list.remove(max(self.breathe_data_list))
                         self.breathe_data_list.remove(min(self.breathe_data_list))
@@ -196,8 +235,14 @@ class DealPackage:
                         self.heart_data_list.remove(max(self.heart_data_list))
                         self.heart_data_list.remove(min(self.heart_data_list))
                         heart_average = sum(self.heart_data_list) / len(self.heart_data_list)
-                        breath_str = str(int(breath_average))
-                        heart_str = str(int(heart_average))
+                        if not math.isnan(breath_average):
+                            breath_str = str(int(breath_average))
+                        else:
+                            breath_str = "0"
+                        if not math.isnan(heart_average):
+                            heart_str = str(int(heart_average))
+                        else:
+                            heart_str = "0"
                         SystemMemory.set_value(SystemConstants.BREATHE_DATA_VALUE, breath_str)
                         SystemMemory.set_value(SystemConstants.HEART_DATA_VALUE, heart_str)
                         self.myWin.label_T1_2.setText("呼吸：" + breath_str + " 次/分钟")

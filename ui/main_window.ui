@@ -84,7 +84,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>130</y>
+      <y>180</y>
       <width>341</width>
       <height>171</height>
      </rect>
@@ -108,9 +108,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>310</y>
+      <y>360</y>
       <width>341</width>
-      <height>601</height>
+      <height>551</height>
      </rect>
     </property>
     <property name="title">
@@ -121,7 +121,7 @@
       <rect>
        <x>10</x>
        <y>20</y>
-       <width>301</width>
+       <width>321</width>
        <height>34</height>
       </rect>
      </property>
@@ -140,7 +140,7 @@
       <rect>
        <x>10</x>
        <y>70</y>
-       <width>311</width>
+       <width>321</width>
        <height>34</height>
       </rect>
      </property>
@@ -160,38 +160,13 @@
       <string>心率：</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_T2_3">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>120</y>
-       <width>101</width>
-       <height>51</height>
-      </rect>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-       <horstretch>1</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>28</pointsize>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>姿态</string>
-     </property>
-    </widget>
     <widget class="QListWidget" name="listWidget_posture">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>190</y>
+       <y>130</y>
        <width>331</width>
-       <height>401</height>
+       <height>461</height>
       </rect>
      </property>
      <property name="font">
@@ -444,7 +419,7 @@
       <x>12</x>
       <y>7</y>
       <width>341</width>
-      <height>121</height>
+      <height>161</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -457,7 +432,7 @@
         </font>
        </property>
        <property name="text">
-        <string>接收有线设备数据</string>
+        <string>接收网卡数据</string>
        </property>
       </widget>
      </item>
@@ -468,6 +443,19 @@
          <pointsize>14</pointsize>
          <bold>false</bold>
         </font>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_open_circle">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>打开综合探头设备</string>
        </property>
       </widget>
      </item>

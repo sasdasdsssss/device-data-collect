@@ -50,6 +50,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.ST_x, self.ST_y, self.TNUM, self.GES_x, self.GES_y, \
             self.radar_posture_dict = self.init_data()
         self.btn1.clicked.connect(self.open_network_card)  # 打开网卡
+        self.btn_open_circle.clicked.connect(self.open_circle_probe)  # 打开综合探头
         self.btn_open_wifi.clicked.connect(self.open_wifi_receive)  # 打开wifi接收
         self.btn_save_server.clicked.connect(self.save_server_information)  # 保存服务端数据
         self.btn_clear_log.clicked.connect(self.clear_log_text)  # 保存服务端数据
@@ -216,8 +217,21 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         wired_receive_thread = threading.Thread(target=self.wired_receive_thread)
         wired_receive_thread.setDaemon(True)
         wired_receive_thread.start()
-        logger.info("接收有线数据线程启动！")
+        logger.info("接收有线网卡数据线程启动！")
         self.btn1.setEnabled(False)
+
+    def open_circle_probe(self):
+        logger.info("接收综合探头数据线程启动！")
+        # 创建 UDP 套接字并绑定到本地地址和端口
+        server_address = (global_config.localAddressIp, global_config.localAddressUdpPort)
+        myCircleSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        myCircleSocket.bind(server_address)
+        myCircleSocket.sendto("hello".encode(), server_address)
+        circle_receive_thread = threading.Thread(
+            target=DealPackage(self, myCircleSocket, "192.168.1.100").deal_parameter_circle_package)
+        circle_receive_thread.setDaemon(True)
+        circle_receive_thread.start()
+        self.btn_open_circle.setEnabled(False)
 
     def open_wifi_receive(self):
         # 启动接收线程
