@@ -49,6 +49,8 @@ class SocketClient:
                     petient_posture = SystemMemory.get_value("petient_posture" + ip_value)
                     if petient_posture:
                         petient_posture_list.append(petient_posture)
+                    else:
+                        petient_posture_list.append(0)
                 personLocation = []
                 for person_index, person_location in person_pos_dict.items():
                     single_person_location = [person_location[0], person_location[1]]

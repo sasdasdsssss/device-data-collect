@@ -69,7 +69,6 @@ class DealPackage:
 
     def deal_posture_wifi_package(self):
         while True:
-            print(self.ip_value)
             packet_in, addr = self.mySocket.recvfrom(1040)
             if len(packet_in) == 1040:
                 result_recv_data = packet_in.hex()

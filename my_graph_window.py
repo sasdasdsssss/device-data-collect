@@ -44,6 +44,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)  # 初始化窗口
         self.setWindowTitle('雷达数据发送')
         self.setWindowIcon(QIcon('ui/main.ico'))
+        self.radar_posture_dict = {"192.168.101.43": 0, "192.168.101.40": 4}
         self.p1, self.p11, self.p2, self.p22, self.curve1, self.curve11, \
             self.curve2, self.curve22, self.pos, self.pos1, self.series, self.Q3D = self.set_graph_ui()  # 设置绘图窗口
         self.T1_phaseBreath, self.T1_phaseHeart, self.T1_amp, self.T1_wave, \
@@ -198,7 +199,6 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.curve2.setData(self.T1_amp)
         self.curve22.setData(self.T1_phaseHeart)
         # 测试 姿态内容
-        self.radar_posture_dict = {"192.168.101.42": 0, "192.168.101.43": 4}
         posture_count = 0
         self.listWidget_posture.clear()
         # 调整姿态
