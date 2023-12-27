@@ -69,6 +69,7 @@ class DealPackage:
 
     def deal_posture_wifi_package(self):
         while True:
+            print(self.ip_value)
             packet_in, addr = self.mySocket.recvfrom(1040)
             if len(packet_in) == 1040:
                 result_recv_data = packet_in.hex()
@@ -106,16 +107,21 @@ class DealPackage:
     # 处理综合探头参数类型数据
     def deal_parameter_circle_package(self):
         while True:
-            packet_in, addr = self.mySocket.recvfrom(1040)
-            if len(packet_in) == 1040:
+            packet_in, addr = self.mySocket.recvfrom(1024)
+            if len(packet_in) == 1024:
                 packet = list(packet_in)
-                # print(packet)
-                if packet[0] == 0xFF and packet[1] == 0xFF and packet[2] == 0xFF \
-                        and packet[3] == 0xFF and packet[4] == 0xFF and packet[5] == 0xFF \
-                        and packet[6] == 0x48 and packet[7] == 0x5B and packet[8] == 0x39 \
-                        and packet[9] == 0xC2 and packet[10] == 0x7D and packet[11] == 0xF8:
-                    self.count = self.count + 1
-                    self.deal_parameter_package(packet, SystemConstants.CIRCLE_NETWORK_TYPE)
+                print(packet)
+                self.count = self.count + 1
+                self.deal_parameter_package(packet, SystemConstants.CIRCLE_NETWORK_TYPE)
+            # if len(packet_in) == 1040:
+            #     packet = list(packet_in)
+            #     # print(packet)
+            #     if packet[0] == 0xFF and packet[1] == 0xFF and packet[2] == 0xFF \
+            #             and packet[3] == 0xFF and packet[4] == 0xFF and packet[5] == 0xFF \
+            #             and packet[6] == 0x48 and packet[7] == 0x5B and packet[8] == 0x39 \
+            #             and packet[9] == 0xC2 and packet[10] == 0x7D and packet[11] == 0xF8:
+            #         self.count = self.count + 1
+            #         self.deal_parameter_package(packet, SystemConstants.CIRCLE_NETWORK_TYPE)
             # if len(packet_in) == 1040:
             #     result_recv_data = packet_in.hex()
             #     # print(result_recv_data)

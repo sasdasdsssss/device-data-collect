@@ -43,6 +43,8 @@ class GlobalConfig:
             self.localAddressIp = config_data["other"]["localAddressIp"]
             # 本地综合探头雷达发送数据端口
             self.localAddressUdpPort = config_data["other"]["localAddressUdpPort"]
+            # 姿态处理数量
+            self.postureDealCount = config_data["other"]["postureDealCount"]
 
 
 global_config = GlobalConfig()

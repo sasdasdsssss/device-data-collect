@@ -43,8 +43,9 @@ class FindDevice:
         # 遍历IP地址列表，找到IPv4地址
         for item in ip_list:
             if item[0] == socket.AF_INET:
-                ip_address = item[4][0]
-                break
+                if item[4][0].startswith("192.168.101"):
+                    ip_address = item[4][0]
+                    break
         return ip_address
 
     @staticmethod

@@ -57,6 +57,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.btn_start_send.clicked.connect(self.start_send_thread)  # 发送数据
 
         self.btn_save_server.setEnabled(True)
+        # self.btn_open_circle.setEnabled(False)
 
     @staticmethod
     def init_data():
@@ -228,7 +229,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         myCircleSocket.bind(server_address)
         myCircleSocket.sendto("hello".encode(), server_address)
         circle_receive_thread = threading.Thread(
-            target=DealPackage(self, myCircleSocket, "192.168.1.100").deal_parameter_circle_package)
+            target=DealPackage(self, myCircleSocket, "192.168.1.101").deal_parameter_circle_package)
         circle_receive_thread.setDaemon(True)
         circle_receive_thread.start()
         self.btn_open_circle.setEnabled(False)
@@ -249,25 +250,26 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             mySocket.sendto(SystemConstants.WIFI_START_SEND_CONTENT.encode(), radar_device_udp_address)
             socket_dict[radar_device_udp_address] = mySocket
             logger.info("发送触发数据：{}", radar_device_udp_address)
-            if global_config.wifiAddressType[ip_value] == global_config.locationRadarType:
-                wifi_receive_thread = threading.Thread(
-                    target=DealPackage(self, mySocket, ip_value).deal_location_wifi_package)
-                wifi_receive_thread.setDaemon(True)
-                wifi_receive_thread.start()
-                logger.info("接收wifi位置数据线程启动！对应设备{}", ip_value)
-            elif global_config.wifiAddressType[ip_value] == global_config.parameterRadarType:
-                wifi_receive_thread = threading.Thread(
-                    target=DealPackage(self, mySocket, ip_value).deal_parameter_wifi_package)
-                wifi_receive_thread.setDaemon(True)
-                wifi_receive_thread.start()
-                logger.info("接收wifi心率呼吸数据线程启动！对应设备{}", ip_value)
-            elif global_config.wifiAddressType[ip_value] == global_config.postureRadarType:
-                wifi_receive_thread = threading.Thread(
-                    target=DealPackage(self, mySocket, ip_value).deal_posture_wifi_package)
-                wifi_receive_thread.setDaemon(True)
-                wifi_receive_thread.start()
-                logger.info("接收wifi姿态数据线程启动！对应设备{}", ip_value)
-        SystemMemory.set_value("socket_dict", socket_dict)
+            if ip_value in global_config.wifiAddressType:
+                if global_config.wifiAddressType[ip_value] == global_config.locationRadarType:
+                    wifi_receive_thread = threading.Thread(
+                        target=DealPackage(self, mySocket, ip_value).deal_location_wifi_package)
+                    wifi_receive_thread.setDaemon(True)
+                    wifi_receive_thread.start()
+                    logger.info("接收wifi位置数据线程启动！对应设备{}", ip_value)
+                elif global_config.wifiAddressType[ip_value] == global_config.parameterRadarType:
+                    wifi_receive_thread = threading.Thread(
+                        target=DealPackage(self, mySocket, ip_value).deal_parameter_wifi_package)
+                    wifi_receive_thread.setDaemon(True)
+                    wifi_receive_thread.start()
+                    logger.info("接收wifi心率呼吸数据线程启动！对应设备{}", ip_value)
+                elif global_config.wifiAddressType[ip_value] == global_config.postureRadarType:
+                    wifi_receive_thread = threading.Thread(
+                        target=DealPackage(self, mySocket, ip_value).deal_posture_wifi_package)
+                    wifi_receive_thread.setDaemon(True)
+                    wifi_receive_thread.start()
+                    logger.info("接收wifi姿态数据线程启动！对应设备{}", ip_value)
+            SystemMemory.set_value("socket_dict", socket_dict)
         self.btn_open_wifi.setEnabled(False)
 
     # 保存发送服务信息

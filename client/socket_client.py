@@ -61,6 +61,6 @@ class SocketClient:
                 send_location_msg = str(send_location_data).encode(SystemConstants.ENCODE_TYPE)
                 sock.sendto(send_location_msg, (ip, port))
                 logging_str += " 发送位置数据成功：" + str(send_location_data)
-            if logging_str and len(logging_str) > 0:
-                self.myWin.add_content_to_text_edit_logging(logging_str)
+            # if logging_str and len(logging_str) > 0:
+            #     self.myWin.add_content_to_text_edit_logging(logging_str)
             time.sleep(SystemMemory.get_value(SystemConstants.SPAN_NAME) / 1000)
