@@ -37,6 +37,7 @@ class DealPackage:
         self.MODE = 0
         self.posture_count = 0
         self.posture_list = []
+        self.ACTION = 0
 
     def wired_packet_callback(self, win_pcap, param, header, pkt_data):
         packet = list(pkt_data)
@@ -170,8 +171,55 @@ class DealPackage:
                     self.posture_count += 1
                     person_posture = int(self.data2[3001])
                     g_OutNum = int(self.data2[3000])
+
+                    R = np.array(self.data2[0:self.TargetNum * 5:5])
+                    V = np.array(self.data2[1:self.TargetNum * 5:5])
+                    P = np.array(self.data2[2:self.TargetNum * 5:5])
+                    A = np.array(self.data2[3:self.TargetNum * 5:5])
+                    E = np.array(self.data2[4:self.TargetNum * 5:5])
+                    P_cal = np.pi * P / 180.0
+                    E_cal = np.pi * E / 180.0
+                    R_cal = R * np.cos(E_cal)
+                    H_cal = R * np.sin(E_cal)
+                    R_dis = R_cal * np.cos(P_cal)
+                    L_dis = R_cal * np.sin(P_cal)
+                    H_dis = H_cal
                     if g_OutNum == 0:
                         person_posture = 0
+                    # 判断厕所雷达，处理数据
+                    if self.ip_value == "192.168.101.40":
+                        # 坐下的时候记录
+                        if person_posture == 3:
+                            self.ACTION = 3
+                        # 其他状态清空
+
+                        if person_posture in [1, 2, 4]:
+                            self.ACTION = person_posture
+
+                        if person_posture == 5 and self.ACTION == 3:
+                            # r_temp, v_temp = calculate(R, V)
+                            # print(r_temp - R1, v_temp - V1)
+                            # if abs(r_temp - R1) < 0.4 and abs(v_temp - V1) > 0.4:
+                            #     myWin.ACTION_TYPE_DISPLAY = 3
+                            person_posture = 3
+                            self.ACTION = 3
+
+                        if person_posture == 5:
+                            self.ACTION = 5
+                    elif self.ip_value == "192.168.101.43":
+                        if person_posture == 5:
+                            # print("调整" + str(person_posture))
+                            height = self.deal_data(H_dis, A)
+                            # print("height" + str(height))
+                            if height > 0.2:
+                                person_posture = 3
+
+                    # 厕所和房间雷达都修改为跌倒
+                    if person_posture == 5:
+                        person_posture = 4
+
+                    # print(person_posture)
+
                     self.posture_list.append(person_posture)
                     # 更新界面上的姿态值
                     self.myWin.radar_posture_dict[self.ip_value] = person_posture
@@ -184,6 +232,14 @@ class DealPackage:
                     SystemMemory.set_value("petient_posture" + self.ip_value, most_common_item)
                     self.posture_count = 0
                     self.posture_list = []
+
+    @staticmethod
+    def deal_data(H1, A1):
+        H_average = []
+        for i in range(512):
+            if A1[i] > 0.05:
+                H_average.append(abs(H1[i]))
+        return np.mean(H_average)
 
     def deal_parameter_package(self, packet, network_type):
         if packet[14] == 0:

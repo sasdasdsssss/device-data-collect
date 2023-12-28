@@ -1,5 +1,6 @@
 import socket
 import time
+import random
 from datetime import datetime
 
 from config import system_memory as SystemMemory
@@ -22,21 +23,22 @@ class SocketClient:
         while True:
             breath_data = SystemMemory.get_value(SystemConstants.BREATHE_DATA_VALUE)
             heart_rate_data = SystemMemory.get_value(SystemConstants.HEART_DATA_VALUE)
-            logging_str = ""
             # 发送呼吸数据
             if breath_data:
-                send_breath_data = {"type": SystemConstants.RADAR_BREATH_DATA_TYPE,
-                                    "data": breath_data}
-                send_breath_msg = str(send_breath_data).encode(SystemConstants.ENCODE_TYPE)
-                sock.sendto(send_breath_msg, (ip, port))
-                logging_str = "发送呼吸数据成功：" + str(send_breath_data)
+                if 10 <= int(breath_data) <= 30:
+                    send_breath_data = {"type": SystemConstants.RADAR_BREATH_DATA_TYPE,
+                                        "data": breath_data}
+                    send_breath_msg = str(send_breath_data).encode(SystemConstants.ENCODE_TYPE)
+                    sock.sendto(send_breath_msg, (ip, port))
+                    logger.info("发送呼吸数据成功：{}", str(send_breath_data))
             # 发送心率数据
             if heart_rate_data:
-                send_heart_data = {"type": SystemConstants.RADAR_HEART_DATA_TYPE,
-                                   "data": heart_rate_data}
-                send_heart_msg = str(send_heart_data).encode(SystemConstants.ENCODE_TYPE)
-                sock.sendto(send_heart_msg, (ip, port))
-                logging_str += " 发送心率数据成功：" + str(send_heart_data)
+                if 65 <= int(heart_rate_data) <= 85:
+                    send_heart_data = {"type": SystemConstants.RADAR_HEART_DATA_TYPE,
+                                       "data": heart_rate_data}
+                    send_heart_msg = str(send_heart_data).encode(SystemConstants.ENCODE_TYPE)
+                    sock.sendto(send_heart_msg, (ip, port))
+                    logger.info("发送心率数据成功：{}", str(send_heart_data))
 
             person_pos_dict = SystemMemory.get_value("person_pos_dict")
             if person_pos_dict and len(person_pos_dict) > 0:
@@ -62,7 +64,5 @@ class SocketClient:
                                       }
                 send_location_msg = str(send_location_data).encode(SystemConstants.ENCODE_TYPE)
                 sock.sendto(send_location_msg, (ip, port))
-                logging_str += " 发送位置数据成功：" + str(send_location_data)
-            # if logging_str and len(logging_str) > 0:
-            #     self.myWin.add_content_to_text_edit_logging(logging_str)
+                logger.info("发送位置数据成功：{}", str(send_location_data))
             time.sleep(SystemMemory.get_value(SystemConstants.SPAN_NAME) / 1000)
