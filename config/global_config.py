@@ -45,6 +45,14 @@ class GlobalConfig:
             self.localAddressUdpPort = config_data["other"]["localAddressUdpPort"]
             # 姿态处理数量
             self.postureDealCount = config_data["other"]["postureDealCount"]
+            # 地址前缀
+            self.addressPrex = config_data["other"]["addressPrex"]
+            # wifi 设备端口
+            self.wifiDevicePort = config_data["other"]["wifiDevicePort"]
+            # 雷达俯仰角度
+            self.radarHAngle = config_data["other"]["radarHAngle"]
+            # 雷达水平偏转角度
+            self.radarLAngle = config_data["other"]["radarLAngle"]
 
 
 global_config = GlobalConfig()

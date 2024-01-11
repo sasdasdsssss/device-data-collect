@@ -13,13 +13,17 @@
   # 3 v3版本，位置信息
   locationRadarType: 3
   # wifi 设备地址和类型对应关系
+  addressPrex: "192.168.0"
+  wifiDevicePort: 7878
   wifiAddressType:
-    # ac:d8:29:48:90:1b 房间
-    "192.168.101.43": 1
-    # ac:d8:29:4c:ec:9d 客厅
-    "192.168.101.47": 3
-    # ac:d8:29:48:60:13 厕所
-    "192.168.101.40": 1
+#    # ac:d8:29:48:90:1b 房间
+#    "192.168.101.43": 1
+#    # ac:d8:29:4c:ec:9d 客厅
+#    "192.168.101.47": 3
+#    # ac:d8:29:48:60:13 厕所
+#    "192.168.101.40": 1
+  # ac:d8:29:4c:ec:9d 客厅
+    "192.168.0.137": 3
 
   # 综合探头ip和类型配置
   circleAddressType:
@@ -47,9 +51,9 @@
     yMax: 3
   #  人位置远近判断
   personDistance:
-    maxDistance: 4
-    maxX: 1.5
-    maxY: 1.5
+    maxDistance: 2.5
+    maxX: 0.7
+    maxY: 0.7
 
   # 门附近 范围
   doorLocationScope:
@@ -64,6 +68,11 @@
   parameterDealCount: 20
   # 姿态处理数量
   postureDealCount: 10
+  # 雷达俯仰角度
+  radarHAngle: 30
+  # 雷达水平角度
+  radarLAngle: 30
+
 
 
 

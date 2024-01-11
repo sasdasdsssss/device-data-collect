@@ -1,3 +1,4 @@
+import csv
 import math
 import sys
 import numpy as np
@@ -38,6 +39,7 @@ class DealPackage:
         self.posture_count = 0
         self.posture_list = []
         self.ACTION = 0
+        self.write_count = 0
 
     def wired_packet_callback(self, win_pcap, param, header, pkt_data):
         packet = list(pkt_data)
@@ -339,11 +341,11 @@ class DealPackage:
                 tnum = int(self.data2[3002] / 1)
                 self.myWin.TNUM = tnum
 
-                R = np.array(self.data2[0:self.TargetNum * 5:5])
-                V = np.array(self.data2[1:self.TargetNum * 5:5])
-                P = np.array(self.data2[2:self.TargetNum * 5:5])
-                A = np.array(self.data2[3:self.TargetNum * 5:5])
-                E = np.array(self.data2[4:self.TargetNum * 5:5])
+                R = np.array(self.data2[0:self.TargetNum * 5:5])  # 目标到雷达的单程距离 径向距离
+                V = np.array(self.data2[1:self.TargetNum * 5:5])  # 速度
+                P = np.array(self.data2[2:self.TargetNum * 5:5])  # 水平偏转角
+                A = np.array(self.data2[3:self.TargetNum * 5:5])  # 信噪比（可以理解为该点的能量）
+                E = np.array(self.data2[4:self.TargetNum * 5:5])  # 垂直俯仰角度
                 P_cal = np.pi * P / 180.0
                 E_cal = np.pi * (E - 30) / 180.0
                 R_cal = R * np.cos(E_cal)
@@ -351,6 +353,32 @@ class DealPackage:
                 R_dis = R_cal * np.cos(P_cal)
                 L_dis = R_cal * np.sin(P_cal)
                 H_dis = H_cal
+                R_filter_list = []
+                for i in range(len(R)):
+                    writeList = []
+                    if abs(R[i]) > 0 and A[i] > 0.05:
+                        R_filter_list.append(abs(R[i]))
+                        # writeList.append(R[i])
+                        # writeList.append(V[i])
+                        # writeList.append(P[i])
+                        # writeList.append(A[i])
+                        # writeList.append(E[i])
+                        # writeList.append(R_cal[i])
+                        # writeList.append(L_dis[i])
+                        # writeList.append(H_dis[i])
+                        # with open('d:/output.csv', 'a', newline='') as file:
+                        #     writer = csv.writer(file)
+                        #     writer.writerow(writeList)
+                # 距离的平均值
+                # R_avg = sum(R_filter_list) / len(R_filter_list)
+                # if 3.9 < R_avg < 4:
+                #     print(R_avg)
+
+                # with open('d:/output.csv', 'a', newline='') as file:
+                #     writer = csv.writer(file)
+                #     writer.writerow(
+                #         [self.write_count, self.write_count, self.write_count, self.write_count, self.write_count])
+                # self.write_count += 1
 
                 self.myWin.pos = np.zeros((self.TargetNum, 3))
                 cnt = 0
@@ -363,26 +391,63 @@ class DealPackage:
                     cnt = cnt + 1
                 # 半秒处理一次
                 self.data_counts = self.data_counts + 1
-                if self.data_counts >= 40:
-                    R_real = np.zeros(self.TargetNum)
-                    L_real = np.zeros(self.TargetNum)
-                    H_real = np.zeros(self.TargetNum)
-                    for i in range(self.TargetNum):
-                        if A[i] < 0.05:
-                            continue
-                        R_real[i] = R_dis[i]
-                        L_real[i] = L_dis[i]
-                        H_real[i] = H_dis[i]
+                # if self.data_counts >= 10:
+                R_real = np.zeros(self.TargetNum)
+                L_real = np.zeros(self.TargetNum)
+                H_real = np.zeros(self.TargetNum)
+                for i in range(self.TargetNum):
+                    if A[i] < 0.05:
+                        continue
+                    R_real[i] = R_dis[i]  # x坐标
+                    L_real[i] = L_dis[i]  # y坐标
+                    H_real[i] = H_dis[i]  # z坐标 高度
 
-                    # 根据 R_dis 和 L_dis 创建一个新的二维数组
-                    points = np.column_stack((R_real, L_real))
-                    # print(points)
-                    self.deal_cluster_person_point(points)
-                    self.data_counts = 0
+                # 根据 R_dis 和 L_dis 创建一个新的二维数组
+                points = np.column_stack((R_real, L_real))
+                # print(points)
+                # self.deal_cluster_person_point(points)
+                # person_pos_dict = self.deal_cluster(points)
+                # if len(person_pos_dict) > 0:
+                #     print(person_pos_dict)
+
+                self.data_counts = 0
+
+    def deal_cluster(self, points):
+        # 使用 DBSCAN 算法进行聚类
+        dbscan = DBSCAN(eps=1, min_samples=5)  # eps 半径、min_samples 最小样本数
+        clusters = dbscan.fit_predict(points)
+
+        # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
+        num_clusters = len(set(clusters)) - (1 if -1 in clusters else 0)
+
+        # 将相近的点分组到各自的数组中
+        clustered_points = {}
+        for i, cluster in enumerate(clusters):
+            if cluster == -1:
+                continue
+            if cluster not in clustered_points:
+                clustered_points[cluster] = []
+            clustered_points[cluster].append(points[i])
+        # 打印分组后的点
+        # for cluster, points in clustered_points.items():
+        #     print(f"群体 {cluster}: {points}")
+        # print(len(clustered_points))
+        person_pos_dict = {}
+        person_count = 0
+        for cluster, points in clustered_points.items():
+            points_array = np.array(points)
+            avg_R_dis = np.mean(points_array[:, 0])
+            avg_L_dis = np.mean(points_array[:, 1])
+            # 存储在 myWin.pos 中
+            cur_person_pos_tuple = (round(avg_R_dis, 6), round(avg_L_dis, 6))
+            if abs(cur_person_pos_tuple[0]) > 0.1 and abs(cur_person_pos_tuple[1]) > 0.1:
+                person_pos_dict[person_count] = cur_person_pos_tuple
+                person_count += 1
+        return person_pos_dict
 
     def deal_cluster_person_point(self, points):
         # 使用 DBSCAN 算法进行聚类
-        dbscan = DBSCAN(eps=1, min_samples=2)  # eps 半径、min_samples 最小样本数
+        dbscan = DBSCAN(eps=1, min_samples=5)  # eps 半径、min_samples 最小样本数
         clusters = dbscan.fit_predict(points)
 
         # 获取群体数量（忽略噪声点，即 cluster == -1 的点）
@@ -397,19 +462,27 @@ class DealPackage:
                 clustered_points[cluster] = []
             clustered_points[cluster].append(points[i])
 
-        """
-          # 打印分组后的点
-          for cluster, points in clustered_points.items():
-              print(f"群体 {cluster}: {points}")
-          """
+        # 打印分组后的点
+        # for cluster, points in clustered_points.items():
+        #     print(f"群体 {cluster}: {points}")
+        # print(len(clustered_points))
+        person_pos_dict = {}
+        person_count = 0
         for cluster, points in clustered_points.items():
             points_array = np.array(points)
             avg_R_dis = np.mean(points_array[:, 0])
             avg_L_dis = np.mean(points_array[:, 1])
             # 存储在 myWin.pos 中
             cur_person_pos_tuple = (round(avg_R_dis, 6), round(avg_L_dis, 6))
-            if abs(cur_person_pos_tuple[0]) < 0.5 and abs(cur_person_pos_tuple[1]) < 0.5:
-                return
+            # print(cur_person_pos_tuple)
+            # if abs(cur_person_pos_tuple[0]) > 0.1 and abs(cur_person_pos_tuple[1]) > 0.1:
+            #     person_pos_dict[person_count] = cur_person_pos_tuple
+            #     person_count += 1
+            # if len(person_pos_dict) > 0:
+            #     SystemMemory.set_value("person_pos_dict", person_pos_dict)
+            #     self.myWin.modify_person_location_list(person_pos_dict)
+            # if abs(cur_person_pos_tuple[0]) > 0.5 and abs(cur_person_pos_tuple[1]) > 0.5:
+            # print(cur_person_pos_tuple)
             self.modify_person_pos_dict(cur_person_pos_tuple)
 
     def get_door_person_index(self):
@@ -436,29 +509,29 @@ class DealPackage:
         if person_pos_dict:
             if self.update_person_location(new_cluster_person_point, person_pos_dict):
                 # 没有人，人从其他地方出现，添加人
-                # print("没有人，人从其他地方出现，添加人")
+                print("没有人，人从其他地方出现，添加人")
                 person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
             # 门附近 出现人，进入，添加人
             near_door_list = self.get_door_person_index()
             if self.person_in_door(new_cluster_person_point) == 1:
                 if len(near_door_list) == 0:
-                    # print("进入， 门附近 无人，添加人")
+                    print("进入， 门附近 无人，添加人")
                     person_pos_dict[len(person_pos_dict)] = new_cluster_person_point
                 else:
                     pass
-                    # print("进入， 门附近 有人，不添加人")
+                    print("进入， 门附近 有人，不添加人")
             elif self.person_in_door(new_cluster_person_point) == 2:
                 if len(near_door_list) == 0:
                     for near_door_index in near_door_list:
                         person_pos_dict.pop(near_door_index)
-                    # print("有人出去，清除门附近人")
+                    print("有人出去，清除门附近人")
                 else:
-                    # print("不处理出去信息！")
+                    print("不处理出去信息！")
                     pass
                 # person_pos_dict.pop(person_num)
         else:
             # 添加一个人
-            # print("没有记录，添加人")
+            print("没有记录，添加人")
             person_pos_dict = {0: new_cluster_person_point}
         SystemMemory.set_value("person_pos_dict", person_pos_dict)
         self.myWin.modify_person_location_list(person_pos_dict)
@@ -479,7 +552,7 @@ class DealPackage:
             if (sqrt_diff_list_x[min_index] < global_config.personDistance["maxX"]
                     and sqrt_diff_list_y[min_index] < global_config.personDistance["maxY"]):
                 person_pos_dict[min_index] = new_cluster_person_point
-                print("更新人的信息 ： " + str(new_cluster_person_point))
+                # print("更新人的信息 ： " + str(new_cluster_person_point))
                 return False
             else:
                 return False

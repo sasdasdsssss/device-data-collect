@@ -10,6 +10,8 @@ from loguru import logger
 
 from config import system_memory as SystemMemory
 
+from config.global_config import global_config
+
 
 class FindDevice:
     def __init__(self, myWin):
@@ -43,7 +45,7 @@ class FindDevice:
         # 遍历IP地址列表，找到IPv4地址
         for item in ip_list:
             if item[0] == socket.AF_INET:
-                if item[4][0].startswith("192.168.101"):
+                if item[4][0].startswith(global_config.addressPrex):
                     ip_address = item[4][0]
                     break
         return ip_address
@@ -85,8 +87,7 @@ class FindDevice:
         df = df.loc[df.类型 == "动态", ["Internet 地址", "物理地址"]]
         if last is None:
             for value in df.values:
-                #  and value[0][-3:] != ".43"
-                if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101":
+                if value[0][-2:] != ".1" and value[0][0:9] == global_config.addressPrex:
                     device_list.append(value[1] + "," + value[0])
         SystemMemory.set_value("device_list", device_list)
         self.myWin.init_wifi_device_list(device_list)
@@ -101,8 +102,7 @@ class FindDevice:
                 if online.shape[0] > 0:
                     device_ip_list_old = SystemMemory.get_value("device_list")
                     for value in online.values:
-                        #  and value[0][-3:] != ".43"
-                        if value[0][-2:] != ".1" and value[0][0:11] == "192.168.101":
+                        if value[0][-2:] != ".1" and value[0][0:11] == global_config.addressPrex:
                             device_str = value[1] + "," + value[0]
                             device_ip_list_old.append(device_str)
                             logger.info("上线设备：{}", device_str)

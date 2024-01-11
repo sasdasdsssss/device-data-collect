@@ -240,7 +240,7 @@ class MyGraphWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for device_value in SystemMemory.get_value("device_list"):
             mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             ip_value = device_value.split(",")[1]
-            radar_device_udp_address = (ip_value, 80)
+            radar_device_udp_address = (ip_value, global_config.wifiDevicePort)
             # 绑定本地端口 避免重启问题
             local_ip = FindDevice(self).get_local_ip()
             client_udp_address = (local_ip, global_config.serverAddressLocalhostPort + int(ip_value.split(".")[3]))

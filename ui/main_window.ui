@@ -290,7 +290,7 @@
          </font>
         </property>
         <property name="text">
-         <string>124.70.190.218</string>
+         <string>127.0.0.1</string>
         </property>
        </widget>
       </item>
@@ -329,7 +329,7 @@
          </font>
         </property>
         <property name="text">
-         <string>2000</string>
+         <string>500</string>
         </property>
        </widget>
       </item>

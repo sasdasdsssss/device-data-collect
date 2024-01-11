@@ -1,5 +1,7 @@
 import math
 
+from config.global_config import global_config
+
 
 class LocationConvert:
     @staticmethod
@@ -12,7 +14,7 @@ class LocationConvert:
         y_dis = 3.3
         x_pre = round(location_list[0], 6)
         y_pre = round(location_list[1], 6)
-        dis_e = math.radians(24)  # 雷达安装的偏转角
+        dis_e = math.radians(global_config.radarLAngle)  # 雷达安装的偏转角
         beta = math.atan2(x_pre, y_pre)  # 原坐标下的投影角
         alpha = beta - dis_e  # 转换后的投影角
         r = math.sqrt(math.pow(x_pre, 2) + math.pow(y_pre, 2))
@@ -21,10 +23,10 @@ class LocationConvert:
 
         return_x = x_new * 4.6 / 4.2
         return_y = y_new * 4.6 / 3.3
-        if return_x > 5:
-            return_x = 4.7
-        if return_x < -5:
-            return_x = -4.7
+        if return_x > 6:
+            return_x = 5.7
+        if return_x < -6:
+            return_x = -5.7
         if return_y > 5:
             return_y = 4.7
         new_location_list.append(return_x)
