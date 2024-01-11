@@ -32,3 +32,40 @@ class LocationConvert:
         new_location_list.append(return_x)
         new_location_list.append(return_y)
         return new_location_list
+
+    @staticmethod
+    def convert_xyz_location_list(location_list, alpha1, distance):
+        new_location_list = []
+        # 坐标变换
+        seta_x = -0.05  # x误差
+        seta_y = 0.05  # y误差
+        x_dis = 6.6  # 两个坐标原点的距离
+        y_dis = 3.5
+        x_pre = round(location_list[0], 6)
+        y_pre = round(location_list[1], 6)
+        z_pre = round(location_list[2], 6)
+        dis_e = math.radians(30)  # 雷达安装的偏转角
+        beta = math.atan2(x_pre, y_pre)  # 原坐标下的投影角
+        alpha = beta - dis_e  # 转换后的投影角
+        r = math.sqrt(math.pow(x_pre, 2) + math.pow(y_pre, 2))
+        # 转换后坐标
+        y_new = r * math.cos(alpha) - y_dis + seta_y
+        x_new = -r * math.sin(alpha) + x_dis + seta_x
+
+        # # r
+        # r_dis = math.sqrt(math.pow(x_new, 2) + math.pow(y_new, 2))
+        #
+        # if z_pre > 0:
+        #     z_new = 2.5 - r_dis * math.tan(dis_e) + z_pre / math.cos(dis_e)
+        # else:
+        #     z_new = 2.5 - r_dis * math.tan(dis_e) - z_pre / math.cos(dis_e)
+
+        if alpha1 > 0:
+            beta1 = 120 - alpha1
+        else:
+            beta1 = 60 + alpha1
+
+        z_new = distance * math.cos(beta1)
+
+        new_location_list = [x_new, y_new, z_new]
+        return new_location_list
