@@ -354,7 +354,7 @@ class DealPackage:
                 R_dis = R_cal * np.cos(P_cal)
                 L_dis = R_cal * np.sin(P_cal)
                 H_dis = H_cal
-                print(H_dis)
+                # print(H_dis)
                 R_filter_list = []
                 P_filter_list = []
                 E_filter_list = []
@@ -365,19 +365,19 @@ class DealPackage:
                 location_z_list = []
                 for i in range(len(R)):
                     writeList = []
-                    if abs(R[i]) > 0 and A[i] > 0.05:
-                        cur_location = [R_dis[i], L_dis[i], H_dis[i]]
-                        convert_location = LocationConvert.convert_xyz_location_list(cur_location, P[i], R[i])
-                        location_xyz_list.append(convert_location)
-                        if convert_location[2]:
-                            location_x_list.append(convert_location[0])
-                            location_y_list.append(convert_location[1])
+                    # if 0 < abs(R[i]) < 10:
+                    cur_location = [R_dis[i], L_dis[i], H_dis[i]]
+                    convert_location = LocationConvert.convert_xyz_location_list(cur_location, E[i], R[i])
+                    location_xyz_list.append(convert_location)
+                    if convert_location[2]:
+                        location_x_list.append(convert_location[0])
+                        location_y_list.append(convert_location[1])
+                        if 0 < convert_location[2] < 2:
                             location_z_list.append(convert_location[2])
-
-                        R_filter_list.append(abs(R[i]))
-                        P_filter_list.append(abs(P[i]))
-                        E_filter_list.append(abs(E[i]))
-                        r_p_points.append([abs(R[i]), abs(np.pi * P[i]), abs(np.pi * E[i])])
+                    R_filter_list.append(R[i])
+                    P_filter_list.append(P[i])
+                    E_filter_list.append(E[i])
+                    r_p_points.append([abs(R[i]), abs(np.pi * P[i]), abs(np.pi * E[i])])
                         # writeList.append(R[i])
                         # writeList.append(V[i])
                         # writeList.append(P[i])
@@ -396,18 +396,37 @@ class DealPackage:
                 # if len(person_r_p_pos_dict) > 0:
                 #     print(person_r_p_pos_dict)
                 # 距离的平均值
-                R_avg = sum(R_filter_list) / len(R_filter_list)
-                P_avg = sum(P_filter_list) / len(P_filter_list)
-                E_avg = sum(E_filter_list) / len(E_filter_list)
-                if 2.8 < R_avg < 3:
+                R_avg = 0
+                if len(R_filter_list) > 0:
+                    R_avg = sum(R_filter_list) / len(R_filter_list)
+                if len(P_filter_list) > 0:
+                    P_avg = sum(P_filter_list) / len(P_filter_list)
+                if len(E_filter_list) > 0:
+                    E_avg = sum(E_filter_list) / len(E_filter_list)
+                # filter_location_z_list = list(filter(lambda x: 0 < x < 2, location_z_list))
+                # print("R_avg:", abs(R_avg))
+                # if 0 < abs(R_avg) < 10:
+                if len(location_z_list) > 0:
+                    print(sum(location_z_list) / len(location_z_list))
                     # print(R_avg, np.pi * P_avg, E_avg)
                 # print(sum(location_x_list) / len(location_x_list), sum(location_y_list) / len(location_y_list),
                 #       sum(location_z_list) / len(location_z_list))
                 #     print(sum(location_z_list) / len(location_z_list))
-                    print(H_dis)
-                # with open('d:/output.csv', 'a', newline='') as file:
-                #     writer = csv.writer(file)
-                #     writer.writerow(P_filter_list)
+
+                # print(H_dis)
+                with open('d:/Z.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(location_z_list)
+                with open('d:/P.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(P_filter_list)
+                with open('d:/E.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(E_filter_list)
+                #
+                with open('d:/R.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(R_filter_list)
 
                 # with open('d:/output.csv', 'a', newline='') as file:
                 #     writer = csv.writer(file)

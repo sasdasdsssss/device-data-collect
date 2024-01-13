@@ -14,8 +14,6 @@ from winpcapy import WinPcapUtils
 import struct
 import time
 import threading
-import serial
-import serial.tools.list_ports
 import PySide6.QtGui as qg
 from loguru import logger
 
